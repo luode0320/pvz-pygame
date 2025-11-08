@@ -1,0 +1,90 @@
+# DNF vs LOL - 第二关配置
+# 演示关卡：展示关卡级别配置覆盖功能
+
+level_id: "level_02"
+name: "挑战关卡：配置覆盖演示"
+map_id: "dnf_vs_lol_level02"
+map_background: "maps/background.png"
+placement_mask: "maps/placement_mask.png"
+path_points: "maps/path_points.json"
+
+# 🎯 角色选择限制（覆盖全局默认值6个）
+character_selection:
+  min_characters: 2  # 至少选择2个角色
+  max_characters: 3  # 最多只能选择3个角色（增加难度）
+
+# 🗺️ 战场网格配置（覆盖全局默认值5x9）
+battlefield:
+  grid_rows: 3       # 只有3行（更紧凑的战场）
+  grid_cols: 7       # 7列（更短的战线）
+  cell_size: 90      # 更大的单元格
+  grid_start_x: 150  # 调整起始位置
+  grid_start_y: 200
+
+# ⚔️ 战斗系统配置（覆盖全局默认值）
+battle_system:
+  card_cooldown: 3.0              # 3秒冷却（加快节奏）
+  enemy_attack_interval: 1.5      # 敌人攻击更快
+  base_damage_multiplier: 15      # 突破基地伤害更高
+  block_distance: 60              # 更大的阻挡距离
+  default_enemy_speed: 30         # 敌人速度更快
+
+# 💰 关卡经济配置（覆盖全局默认值）
+economy:
+  initial_gold: 300  # 更多初始金币补偿难度
+  gold_generation_rate: 30  # 更快的金币生成
+  kill_reward: 30  # 更高的击杀奖励
+
+# 🏰 基地配置
+base:
+  initial_hp: 800  # 更少的血量（增加难度）
+  max_hp: 800
+
+# 🌊 波次配置（更密集的敌人波次）
+waves:
+  - wave_id: "wave_1"
+    time: 5.0  # 5秒后立即开始
+    enemies:
+      - character: "garen"
+        count: 3
+        interval: 2.0
+        health_multiplier: 1.0
+
+  - wave_id: "wave_2"
+    time: 20.0
+    enemies:
+      - character: "garen"
+        count: 4
+        interval: 1.5
+        health_multiplier: 1.2
+
+  - wave_id: "wave_3"
+    time: 40.0
+    enemies:
+      - character: "garen"
+        count: 5
+        interval: 1.0
+        health_multiplier: 1.5
+
+boss: null
+
+# 胜利/失败条件
+victory_conditions:
+  - base_hp > 0
+  - all_waves_cleared
+
+defeat_conditions:
+  - base_hp <= 0
+
+# 奖励配置
+rewards:
+  gold: 800
+  exp: 200
+  unlock_levels: ["level_03"]
+
+# 性能配置
+performance_config:
+  wave_particle_limit: 400
+  boss_fight_particle_limit: 600
+  low_end_disable_effects: []
+  dynamic_quality_adjust: true
