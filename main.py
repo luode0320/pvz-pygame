@@ -10,6 +10,12 @@ import os
 import logging
 import pygame
 
+# 设置标准输出编码为UTF-8（修复Windows控制台乱码）
+if sys.platform == 'win32':
+    import io
+    sys.stdout = io.TextIOWrapper(sys.stdout.buffer, encoding='utf-8')
+    sys.stderr = io.TextIOWrapper(sys.stderr.buffer, encoding='utf-8')
+
 # 添加项目根目录到Python路径
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
@@ -26,7 +32,7 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.FileHandler('game.log', encoding='utf-8'),
-        logging.StreamHandler()
+        logging.StreamHandler(sys.stdout)
     ]
 )
 logger = logging.getLogger(__name__)
@@ -56,6 +62,9 @@ class CrossVerseArena:
         self.resource_loader = get_resource_loader(".")
         self.resource_loader.init_pygame()
 
+        # 初始化中文字体
+        self.fonts = self._init_fonts()
+
         # 初始化游戏引擎
         self.engine = GameEngine(self.settings)
 
@@ -75,6 +84,69 @@ class CrossVerseArena:
 
         logger.info("游戏初始化完成")
 
+    def _init_fonts(self):
+        """
+        初始化支持中文的字体
+
+        返回:
+            字体字典，包含不同尺寸的字体
+        """
+        fonts = {}
+
+        # 尝试加载系统中文字体
+        font_names = [
+            'simhei.ttf',      # 黑体
+            'msyh.ttc',        # 微软雅黑
+            'simsun.ttc',      # 宋体
+            'arial.ttf',       # Arial（备用）
+        ]
+
+        # 在Windows系统字体目录查找
+        font_dirs = []
+        if sys.platform == 'win32':
+            font_dirs.append('C:\\Windows\\Fonts')
+        elif sys.platform == 'darwin':  # macOS
+            font_dirs.extend(['/System/Library/Fonts', '/Library/Fonts'])
+        else:  # Linux
+            font_dirs.extend(['/usr/share/fonts', '/usr/local/share/fonts'])
+
+        # 查找可用的中文字体
+        font_path = None
+        for font_dir in font_dirs:
+            if not os.path.exists(font_dir):
+                continue
+            for font_name in font_names:
+                test_path = os.path.join(font_dir, font_name)
+                if os.path.exists(test_path):
+                    font_path = test_path
+                    logger.info(f"找到中文字体: {font_path}")
+                    break
+            if font_path:
+                break
+
+        # 创建不同尺寸的字体
+        sizes = {
+            'small': 24,
+            'normal': 32,
+            'large': 42,
+            'title': 54,
+            'huge': 72
+        }
+
+        for size_name, size_value in sizes.items():
+            try:
+                if font_path:
+                    fonts[size_name] = pygame.font.Font(font_path, size_value)
+                else:
+                    # 如果找不到中文字体，使用系统默认字体
+                    logger.warning(f"未找到中文字体，使用默认字体（可能无法显示中文）")
+                    fonts[size_name] = pygame.font.SysFont('arial', size_value)
+            except Exception as e:
+                logger.error(f"加载字体失败 ({size_name}): {e}")
+                fonts[size_name] = pygame.font.Font(None, size_value)
+
+        return fonts
+
     def register_state_handlers(self):
         """注册游戏状态处理器"""
         self.engine.register_state_handler(GameState.LOADING, self.state_loading)
@@ -90,8 +162,7 @@ class CrossVerseArena:
         screen.fill((0, 0, 0))
 
         # 显示加载文字
-        font = pygame.font.Font(None, 48)
-        text = font.render("Loading...", True, (255, 255, 255))
+        text = self.fonts['large'].render("Loading...", True, (255, 255, 255))
         text_rect = text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
         screen.blit(text, text_rect)
 
@@ -104,19 +175,16 @@ class CrossVerseArena:
         screen.fill((20, 20, 40))
 
         # 绘制标题
-        font_title = pygame.font.Font(None, 72)
-        title = font_title.render("CrossVerse Arena", True, (255, 200, 50))
+        title = self.fonts['huge'].render("CrossVerse Arena", True, (255, 200, 50))
         title_rect = title.get_rect(center=(screen.get_width() // 2, 150))
         screen.blit(title, title_rect)
 
         # 绘制副标题
-        font_subtitle = pygame.font.Font(None, 36)
-        subtitle = font_subtitle.render("宇宙竞技场", True, (200, 200, 200))
+        subtitle = self.fonts['normal'].render("宇宙竞技场", True, (200, 200, 200))
         subtitle_rect = subtitle.get_rect(center=(screen.get_width() // 2, 220))
         screen.blit(subtitle, subtitle_rect)
 
         # 绘制菜单选项
-        font_menu = pygame.font.Font(None, 42)
         menu_items = [
             ("开始游戏", GameState.CAMPAIGN_SELECT),
             ("设置", GameState.SETTINGS),
@@ -126,7 +194,7 @@ class CrossVerseArena:
         y_start = 320
         for i, (text, target_state) in enumerate(menu_items):
             color = (255, 255, 255) if i == 0 else (180, 180, 180)
-            menu_text = font_menu.render(text, True, color)
+            menu_text = self.fonts['large'].render(text, True, color)
             menu_rect = menu_text.get_rect(center=(screen.get_width() // 2, y_start + i * 70))
             screen.blit(menu_text, menu_rect)
 
@@ -137,7 +205,6 @@ class CrossVerseArena:
                     self.engine.change_state(target_state)
 
         # 显示统计信息
-        font_info = pygame.font.Font(None, 24)
         stats = [
             f"游戏IP: {len(self.config_loader.games)}",
             f"角色: {len(self.config_loader.characters)}",
@@ -148,11 +215,11 @@ class CrossVerseArena:
         ]
 
         for i, stat in enumerate(stats):
-            stat_text = font_info.render(stat, True, (150, 150, 150))
+            stat_text = self.fonts['small'].render(stat, True, (150, 150, 150))
             screen.blit(stat_text, (20, 20 + i * 30))
 
         # 显示提示
-        tip = font_info.render("按 Ctrl+Shift+D 打开管理界面", True, (100, 150, 100))
+        tip = self.fonts['small'].render("按 Ctrl+Shift+D 打开管理界面", True, (100, 150, 100))
         screen.blit(tip, (screen.get_width() - 300, screen.get_height() - 40))
 
     def state_campaign_select(self, screen: pygame.Surface, delta_time: float):
@@ -160,17 +227,15 @@ class CrossVerseArena:
         screen.fill((30, 30, 50))
 
         # 标题
-        font_title = pygame.font.Font(None, 54)
-        title = font_title.render("选择战役", True, (255, 200, 50))
+        title = self.fonts['title'].render("选择战役", True, (255, 200, 50))
         title_rect = title.get_rect(center=(screen.get_width() // 2, 80))
         screen.blit(title, title_rect)
 
         # 显示战役列表
-        font_campaign = pygame.font.Font(None, 36)
         y = 160
 
         if not self.config_loader.campaigns:
-            no_campaign = font_campaign.render("暂无可用战役", True, (200, 200, 200))
+            no_campaign = self.fonts['normal'].render("暂无可用战役", True, (200, 200, 200))
             screen.blit(no_campaign, (screen.get_width() // 2 - 100, y))
         else:
             for campaign_id, campaign in self.config_loader.campaigns.items():
@@ -178,13 +243,12 @@ class CrossVerseArena:
                 desc = campaign.get('description', '')
 
                 # 战役名称
-                name_text = font_campaign.render(campaign_name, True, (255, 255, 255))
+                name_text = self.fonts['normal'].render(campaign_name, True, (255, 255, 255))
                 name_rect = name_text.get_rect(center=(screen.get_width() // 2, y))
                 screen.blit(name_text, name_rect)
 
                 # 描述
-                font_desc = pygame.font.Font(None, 24)
-                desc_text = font_desc.render(desc[:60], True, (180, 180, 180))
+                desc_text = self.fonts['small'].render(desc[:60], True, (180, 180, 180))
                 desc_rect = desc_text.get_rect(center=(screen.get_width() // 2, y + 35))
                 screen.blit(desc_text, desc_rect)
 
@@ -205,8 +269,7 @@ class CrossVerseArena:
                 y += 100
 
         # 返回按钮
-        font_back = pygame.font.Font(None, 32)
-        back_text = font_back.render("返回", True, (200, 200, 200))
+        back_text = self.fonts['normal'].render("返回", True, (200, 200, 200))
         back_rect = back_text.get_rect(topleft=(40, 40))
         screen.blit(back_text, back_rect)
 
@@ -225,22 +288,20 @@ class CrossVerseArena:
         self.entity_manager.render_all(screen)
 
         # 绘制战斗UI
-        font = pygame.font.Font(None, 32)
-
         # 显示基地血量
-        hp_text = font.render("基地 HP: 1000 / 1000", True, (255, 100, 100))
+        hp_text = self.fonts['normal'].render("基地 HP: 1000 / 1000", True, (255, 100, 100))
         screen.blit(hp_text, (20, 20))
 
         # 显示资源
-        resource_text = font.render("金币: 500", True, (255, 200, 50))
+        resource_text = self.fonts['normal'].render("金币: 500", True, (255, 200, 50))
         screen.blit(resource_text, (20, 60))
 
         # 显示FPS
-        fps_text = font.render(f"FPS: {self.engine.get_fps():.1f}", True, (200, 200, 200))
+        fps_text = self.fonts['normal'].render(f"FPS: {self.engine.get_fps():.1f}", True, (200, 200, 200))
         screen.blit(fps_text, (screen.get_width() - 150, 20))
 
         # 暂停按钮
-        pause_text = font.render("暂停 (ESC)", True, (200, 200, 200))
+        pause_text = self.fonts['normal'].render("暂停 (ESC)", True, (200, 200, 200))
         pause_rect = pause_text.get_rect(topright=(screen.get_width() - 20, 60))
         screen.blit(pause_text, pause_rect)
 
@@ -256,14 +317,12 @@ class CrossVerseArena:
         screen.blit(overlay, (0, 0))
 
         # 暂停文字
-        font_title = pygame.font.Font(None, 72)
-        title = font_title.render("暂停", True, (255, 255, 255))
+        title = self.fonts['huge'].render("暂停", True, (255, 255, 255))
         title_rect = title.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 - 50))
         screen.blit(title, title_rect)
 
         # 提示
-        font = pygame.font.Font(None, 36)
-        hint = font.render("按 ESC 继续", True, (200, 200, 200))
+        hint = self.fonts['normal'].render("按 ESC 继续", True, (200, 200, 200))
         hint_rect = hint.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 + 30))
         screen.blit(hint, hint_rect)
 
@@ -271,8 +330,7 @@ class CrossVerseArena:
         """胜利状态处理"""
         screen.fill((40, 80, 40))
 
-        font = pygame.font.Font(None, 72)
-        text = font.render("胜利！", True, (100, 255, 100))
+        text = self.fonts['huge'].render("胜利！", True, (100, 255, 100))
         text_rect = text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
         screen.blit(text, text_rect)
 
@@ -280,8 +338,7 @@ class CrossVerseArena:
         """失败状态处理"""
         screen.fill((80, 40, 40))
 
-        font = pygame.font.Font(None, 72)
-        text = font.render("失败", True, (255, 100, 100))
+        text = self.fonts['huge'].render("失败", True, (255, 100, 100))
         text_rect = text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
         screen.blit(text, text_rect)
 
