@@ -27,6 +27,7 @@ from core.game_engine import GameEngine, GameState
 from core.entity_manager import get_entity_manager
 from core.performance_monitor import get_performance_monitor
 from core.battle_manager import BattleManager
+from core.save_manager import get_save_manager
 
 # 配置日志
 logging.basicConfig(
@@ -77,12 +78,23 @@ class CrossVerseArena:
         # 初始化实体管理器
         self.entity_manager = get_entity_manager()
 
+        # 初始化存档管理器
+        self.save_manager = get_save_manager("saves")
+
         # 战斗管理器（在进入战斗时初始化）
         self.battle_manager: Optional[BattleManager] = None
         self.current_level_config: Optional[dict] = None
+        self.current_campaign_id: Optional[str] = None  # 当前选择的战役ID
 
         # 选中的角色列表（在角色选择界面选择）
         self.selected_characters: list = []
+
+        # 关卡选择界面分页
+        self.level_page = 0  # 当前页码
+        self.levels_per_page = 6  # 每页显示关卡数
+
+        # 胜利/失败状态标志
+        self.level_completed_saved = False  # 是否已保存关卡完成状态
 
         # 鼠标状态（用于防止连点）
         self.mouse_pressed_last_frame = False
@@ -164,6 +176,7 @@ class CrossVerseArena:
         self.engine.register_state_handler(GameState.LOADING, self.state_loading)
         self.engine.register_state_handler(GameState.MENU, self.state_menu)
         self.engine.register_state_handler(GameState.CAMPAIGN_SELECT, self.state_campaign_select)
+        self.engine.register_state_handler(GameState.LEVEL_SELECT, self.state_level_select)
         self.engine.register_state_handler(GameState.CHARACTER_SELECT, self.state_character_select)
         self.engine.register_state_handler(GameState.BATTLE, self.state_battle)
         self.engine.register_state_handler(GameState.PAUSE, self.state_pause)
@@ -287,16 +300,12 @@ class CrossVerseArena:
                 if pygame.mouse.get_pressed()[0] and is_hover:
                     logger.info(f"选择战役: {campaign_name}")
 
-                    # 保存选择的战役和关卡信息
-                    level_id = f"{campaign_id}/level_01"
-                    if level_id in self.config_loader.levels:
-                        self.current_level_config = self.config_loader.levels[level_id].copy()
-                        self.current_level_config['campaign_id'] = campaign_id
+                    # 保存选择的战役ID
+                    self.current_campaign_id = campaign_id
+                    self.level_page = 0  # 重置分页
 
-                        # 跳转到角色选择界面
-                        self.engine.change_state(GameState.CHARACTER_SELECT)
-                    else:
-                        logger.warning(f"未找到关卡配置: {level_id}")
+                    # 跳转到关卡选择界面
+                    self.engine.change_state(GameState.LEVEL_SELECT)
 
                     pygame.time.wait(200)
 
@@ -311,6 +320,197 @@ class CrossVerseArena:
             if back_rect.collidepoint(pygame.mouse.get_pos()):
                 self.engine.change_state(GameState.MENU)
                 pygame.time.wait(200)
+
+    def state_level_select(self, screen: pygame.Surface, delta_time: float):
+        """关卡选择状态处理"""
+        screen.fill((25, 30, 45))
+
+        # 获取当前战役的所有关卡
+        if not self.current_campaign_id:
+            error_text = self.fonts['normal'].render("错误：未选择战役", True, (255, 100, 100))
+            screen.blit(error_text, (screen.get_width() // 2 - 100, 300))
+            return
+
+        # 筛选当前战役的关卡
+        campaign_levels = []
+        for level_id, level_config in self.config_loader.levels.items():
+            if level_id.startswith(self.current_campaign_id):
+                campaign_levels.append((level_id, level_config))
+
+        # 按关卡编号排序
+        campaign_levels.sort(key=lambda x: x[0])
+
+        # 获取战役信息
+        campaign = self.config_loader.campaigns.get(self.current_campaign_id, {})
+        campaign_name = campaign.get('name', self.current_campaign_id)
+
+        # 标题
+        title = self.fonts['title'].render(f"{campaign_name} - 关卡选择", True, (255, 200, 50))
+        title_rect = title.get_rect(center=(screen.get_width() // 2, 60))
+        screen.blit(title, title_rect)
+
+        # 进度信息
+        progress = self.save_manager.get_campaign_progress(
+            self.current_campaign_id,
+            [lvl[0] for lvl in campaign_levels]
+        )
+        progress_text = self.fonts['normal'].render(
+            f"进度: {progress['completed']}/{progress['total']} ({progress['percentage']:.0f}%)",
+            True,
+            (200, 255, 200)
+        )
+        progress_rect = progress_text.get_rect(center=(screen.get_width() // 2, 120))
+        screen.blit(progress_text, progress_rect)
+
+        # 分页计算
+        total_levels = len(campaign_levels)
+        total_pages = (total_levels + self.levels_per_page - 1) // self.levels_per_page
+        start_idx = self.level_page * self.levels_per_page
+        end_idx = min(start_idx + self.levels_per_page, total_levels)
+        page_levels = campaign_levels[start_idx:end_idx]
+
+        # 绘制关卡卡片（2行3列）
+        card_width = 360
+        card_height = 140
+        card_spacing_x = 20
+        card_spacing_y = 20
+        cards_per_row = 2
+        start_x = (screen.get_width() - (cards_per_row * card_width + (cards_per_row - 1) * card_spacing_x)) // 2
+        start_y = 180
+
+        mouse_pos = pygame.mouse.get_pos()
+        mouse_pressed = pygame.mouse.get_pressed()[0]
+        mouse_just_clicked = mouse_pressed and not self.mouse_pressed_last_frame
+
+        for i, (level_id, level_config) in enumerate(page_levels):
+            row = i // cards_per_row
+            col = i % cards_per_row
+
+            x = start_x + col * (card_width + card_spacing_x)
+            y = start_y + row * (card_height + card_spacing_y)
+
+            card_rect = pygame.Rect(x, y, card_width, card_height)
+
+            # 检查解锁和完成状态
+            is_unlocked = self.save_manager.is_level_unlocked(level_id)
+            is_completed = self.save_manager.is_level_completed(level_id)
+            is_hover = card_rect.collidepoint(mouse_pos)
+
+            # 绘制卡片背景
+            if is_completed:
+                bg_color = (40, 80, 40)  # 绿色 - 已完成
+                border_color = (80, 160, 80)
+                status_text = "✓ 已完成"
+                status_color = (100, 255, 100)
+            elif is_unlocked:
+                bg_color = (60, 70, 90) if not is_hover else (80, 90, 120)  # 蓝色 - 已解锁
+                border_color = (100, 120, 160) if not is_hover else (150, 180, 220)
+                status_text = "可进入"
+                status_color = (150, 200, 255)
+            else:
+                bg_color = (40, 40, 40)  # 灰色 - 未解锁
+                border_color = (80, 80, 80)
+                status_text = "🔒 未解锁"
+                status_color = (150, 150, 150)
+
+            pygame.draw.rect(screen, bg_color, card_rect)
+            pygame.draw.rect(screen, border_color, card_rect, 3 if is_hover and is_unlocked else 2)
+
+            # 关卡名称
+            level_name = level_config.get('name', level_id)
+            name_text = self.fonts['large'].render(level_name[:20], True, (255, 255, 255))
+            name_rect = name_text.get_rect(topleft=(x + 15, y + 15))
+            screen.blit(name_text, name_rect)
+
+            # 状态标签
+            status_label = self.fonts['small'].render(status_text, True, status_color)
+            status_rect = status_label.get_rect(topright=(x + card_width - 15, y + 15))
+            screen.blit(status_label, status_rect)
+
+            # 关卡信息（第二行）
+            info_y = y + 55
+            info_x = x + 15
+
+            # 初始金币
+            economy = level_config.get('economy', {})
+            gold_icon = self.fonts['small'].render(f"💰 金币: {economy.get('initial_gold', 200)}", True, (255, 200, 50))
+            screen.blit(gold_icon, (info_x, info_y))
+
+            # 基地血量
+            base = level_config.get('base', {})
+            hp_icon = self.fonts['small'].render(f"❤️ 血量: {base.get('initial_hp', 1000)}", True, (255, 100, 100))
+            screen.blit(hp_icon, (info_x + 150, info_y))
+
+            # 波次数量
+            waves = level_config.get('waves', [])
+            wave_icon = self.fonts['small'].render(f"🌊 波次: {len(waves)}", True, (100, 200, 255))
+            screen.blit(wave_icon, (info_x, info_y + 30))
+
+            # 奖励信息
+            rewards = level_config.get('rewards', {})
+            reward_icon = self.fonts['small'].render(
+                f"🏆 奖励: {rewards.get('gold', 0)} 金币",
+                True,
+                (255, 200, 100)
+            )
+            screen.blit(reward_icon, (info_x, info_y + 60))
+
+            # 处理点击（仅已解锁关卡可点击）
+            if is_hover and mouse_just_clicked and is_unlocked:
+                logger.info(f"选择关卡: {level_name}")
+                self.current_level_config = level_config.copy()
+                self.current_level_config['campaign_id'] = self.current_campaign_id
+                self.current_level_config['level_id'] = level_id  # 保存完整的关卡ID
+
+                # 跳转到角色选择界面
+                self.engine.change_state(GameState.CHARACTER_SELECT)
+
+        # 更新鼠标状态
+        self.mouse_pressed_last_frame = mouse_pressed
+
+        # 分页控制
+        page_y = screen.get_height() - 120
+        page_info = self.fonts['normal'].render(
+            f"第 {self.level_page + 1} / {total_pages} 页",
+            True,
+            (200, 200, 200)
+        )
+        page_info_rect = page_info.get_rect(center=(screen.get_width() // 2, page_y))
+        screen.blit(page_info, page_info_rect)
+
+        # 上一页按钮
+        if self.level_page > 0:
+            prev_button = pygame.Rect(screen.get_width() // 2 - 150, page_y - 20, 60, 40)
+            is_prev_hover = prev_button.collidepoint(mouse_pos)
+            pygame.draw.rect(screen, (80, 80, 120) if is_prev_hover else (60, 60, 90), prev_button)
+            pygame.draw.rect(screen, (150, 150, 200), prev_button, 2)
+            prev_text = self.fonts['normal'].render("◀", True, (255, 255, 255))
+            prev_text_rect = prev_text.get_rect(center=prev_button.center)
+            screen.blit(prev_text, prev_text_rect)
+
+            if is_prev_hover and mouse_just_clicked:
+                self.level_page -= 1
+
+        # 下一页按钮
+        if self.level_page < total_pages - 1:
+            next_button = pygame.Rect(screen.get_width() // 2 + 90, page_y - 20, 60, 40)
+            is_next_hover = next_button.collidepoint(mouse_pos)
+            pygame.draw.rect(screen, (80, 80, 120) if is_next_hover else (60, 60, 90), next_button)
+            pygame.draw.rect(screen, (150, 150, 200), next_button, 2)
+            next_text = self.fonts['normal'].render("▶", True, (255, 255, 255))
+            next_text_rect = next_text.get_rect(center=next_button.center)
+            screen.blit(next_text, next_text_rect)
+
+            if is_next_hover and mouse_just_clicked:
+                self.level_page += 1
+
+        # 返回按钮
+        back_text = self.fonts['normal'].render("返回战役选择 (ESC)", True, (200, 200, 200))
+        back_rect = back_text.get_rect(topleft=(40, 40))
+        screen.blit(back_text, back_rect)
+
+        if back_rect.collidepoint(mouse_pos) and mouse_just_clicked:
+            self.engine.change_state(GameState.CAMPAIGN_SELECT)
 
     def state_character_select(self, screen: pygame.Surface, delta_time: float):
         """角色选择状态处理"""
@@ -491,6 +691,9 @@ class CrossVerseArena:
             # 初始化卡片槽
             self.battle_manager._init_card_slots()
 
+            # 重置关卡完成标志
+            self.level_completed_saved = False
+
             logger.info(f"开始游戏，选择了 {len(self.selected_characters)} 个角色")
             self.engine.change_state(GameState.BATTLE)
 
@@ -594,7 +797,7 @@ class CrossVerseArena:
         # 菜单选项
         menu_items = [
             ("继续游戏 (ESC)", "resume"),
-            ("返回战役选择", "campaign"),
+            ("返回关卡选择", "levels"),
             ("返回主菜单", "menu"),
             ("退出游戏", "quit")
         ]
@@ -635,8 +838,8 @@ class CrossVerseArena:
             if is_hover and mouse_clicked:
                 if action == "resume":
                     self.engine.change_state(GameState.BATTLE)
-                elif action == "campaign":
-                    self.engine.change_state(GameState.CAMPAIGN_SELECT)
+                elif action == "levels":
+                    self.engine.change_state(GameState.LEVEL_SELECT)
                 elif action == "menu":
                     self.engine.change_state(GameState.MENU)
                 elif action == "quit":
@@ -651,6 +854,19 @@ class CrossVerseArena:
     def state_victory(self, screen: pygame.Surface, delta_time: float):
         """胜利状态处理"""
         screen.fill((40, 80, 40))
+
+        # 首次进入胜利界面时保存关卡完成状态
+        if not self.level_completed_saved and self.current_level_config:
+            level_id = self.current_level_config.get('level_id')
+            if level_id:
+                # 获取奖励配置
+                rewards = self.current_level_config.get('rewards', {})
+
+                # 保存关卡完成状态
+                self.save_manager.complete_level(level_id, rewards)
+                self.level_completed_saved = True
+
+                logger.info(f"关卡完成已保存: {level_id}")
 
         # 胜利标题
         text = self.fonts['huge'].render("胜利！", True, (100, 255, 100))
@@ -667,7 +883,7 @@ class CrossVerseArena:
         mouse_clicked = pygame.mouse.get_pressed()[0]
 
         menu_items = [
-            ("下一关", "next"),
+            ("返回关卡选择", "levels"),
             ("返回主菜单", "menu"),
         ]
 
@@ -704,16 +920,12 @@ class CrossVerseArena:
 
             # 处理点击
             if is_hover and mouse_clicked:
-                if action == "next":
-                    # TODO: 实现下一关逻辑（暂时重新开始本关）
-                    logger.info("进入下一关（暂时重新开始本关）")
-                    # 重新初始化战斗管理器（传入settings配置）
-                    if self.current_level_config and self.selected_characters:
-                        self.battle_manager = BattleManager(self.config_loader, self.current_level_config, self.settings)
-                        self.battle_manager.selected_characters = self.selected_characters.copy()
-                        self.battle_manager._init_card_slots()
-                    self.engine.change_state(GameState.BATTLE)
+                if action == "levels":
+                    # 返回关卡选择界面
+                    logger.info("返回关卡选择")
+                    self.engine.change_state(GameState.LEVEL_SELECT)
                 elif action == "menu":
+                    # 返回主菜单
                     self.engine.change_state(GameState.MENU)
                 pygame.time.wait(200)
 
@@ -741,6 +953,7 @@ class CrossVerseArena:
 
         menu_items = [
             ("重试本关", "retry"),
+            ("返回关卡选择", "levels"),
             ("返回主菜单", "menu"),
         ]
 
@@ -784,9 +997,16 @@ class CrossVerseArena:
                         self.battle_manager = BattleManager(self.config_loader, self.current_level_config, self.settings)
                         self.battle_manager.selected_characters = self.selected_characters.copy()
                         self.battle_manager._init_card_slots()
+                        # 重置关卡完成标志
+                        self.level_completed_saved = False
                         logger.info("战斗管理器已重新初始化")
                     self.engine.change_state(GameState.BATTLE)
+                elif action == "levels":
+                    # 返回关卡选择界面
+                    logger.info("返回关卡选择")
+                    self.engine.change_state(GameState.LEVEL_SELECT)
                 elif action == "menu":
+                    # 返回主菜单
                     self.engine.change_state(GameState.MENU)
                 pygame.time.wait(200)
 
