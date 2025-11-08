@@ -1,0 +1,25 @@
+# LOL - 光之守卫（拉克丝召唤物）
+
+character_id: "light_guardian"
+name: "光之守卫"
+type: defender  # 防守方召唤物
+cost: 0  # 召唤物不需要花费
+description: "由拉克丝召唤的光之守卫，协助防御"
+
+# 基础属性（召唤物通常属性较弱）
+stats:
+  hp: 100
+  attack: 15
+  attack_range: 150
+  attack_speed: 1.0
+  speed: 0  # 召唤物通常不移动
+
+# 召唤物不需要技能，保持简单
+skills: []
+
+# 资源引用
+assets:
+  basic_sprite: "assets/sprites/light_guardian.png"
+  basic_icon: "assets/icons/light_guardian.png"
+  sound_attack: "assets/sounds/light_guardian_attack.wav"
+  sound_death: "assets/sounds/light_guardian_death.wav"

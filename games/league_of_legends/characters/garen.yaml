@@ -21,52 +21,73 @@ stats:
 skills:
   - skill_id: "decisive_strike"
     name: "致命打击"
-    type: buff
+    class: buff  # 技能类别: damage, aoe, heal, summon, buff, debuff
+    type: auto  # 技能类型: active, passive, auto
     cooldown: 8.0
-    description: "下次攻击造成额外伤害并沉默目标"
+    description: "增加攻击力，下次攻击造成额外伤害"
+    range: 100
+    target_type: self
+    max_targets: 1
 
-    damage:
-      base_damage: 50
-      damage_type: "physical"
-      crit_chance: 0.2
+    # 增益效果
+    effects:
+      - type: attack_boost
+        value: 0.5  # 提升50%攻击力
+        duration: 3.0
 
-    hit_feedback:
-      type: "heavy"
-      sound: "assets/sounds/garen_q.wav"
-      vibration_duration: 0.25
-      vibration_strength: 70
-      damage_text_color: [1.0, 0.8, 0.0]
+    # 动画和特效
+    animation_duration: 0.3
+    particle_effect: "buff_glow"
 
+    # 资源配置（用于后续的音效和打击感系统）
     assets:
       icon: "assets/skills/garen_q_icon.png"
       sound_cast: "assets/sounds/garen_q_cast.wav"
 
   - skill_id: "judgment"
     name: "审判"
-    type: aoe
+    class: aoe  # AOE技能
+    type: auto  # 自动施放
     cooldown: 12.0
-    description: "旋转大剑，对周围敌人造成持续伤害"
+    description: "旋转大剑，对周围敌人造成范围伤害"
+    range: 150  # 施法距离
+    aoe_radius: 80  # AOE半径
+    target_type: enemy
+    max_targets: 5
+    damage: 60  # 总伤害
 
-    damage:
-      base_damage: 20
-      damage_type: "physical"
-      is_multi_hit: true
-      hit_times: 5
-      interval: 0.4
+    # 减速效果
+    effects:
+      - type: slow
+        value: 0.3  # 减速30%
+        duration: 1.5
 
-    area:
-      radius: 80
-      shape: "circle"
+    # 动画和特效
+    animation_duration: 0.5
+    particle_effect: "spin_attack"
 
-    hit_feedback:
-      type: "heavy"
-      sound: "assets/sounds/garen_e.wav"
-      vibration_duration: 0.15
-      vibration_strength: 50
-
+    # 资源配置
     assets:
       icon: "assets/skills/garen_e_icon.png"
       sound_cast: "assets/sounds/garen_e_cast.wav"
+
+  - skill_id: "courage"
+    name: "勇气"
+    class: buff
+    type: passive  # 被动技能
+    trigger_condition: on_hit  # 受击时触发
+    trigger_chance: 0.3  # 30%概率
+    description: "受到攻击时有几率获得护盾效果"
+
+    # 防御提升
+    effects:
+      - type: defense_boost
+        value: 0.3  # 减少30%受到的伤害
+        duration: 2.0
+
+    # 资源配置
+    assets:
+      icon: "assets/skills/garen_w_icon.png"
 
 # 可用皮肤
 available_skins:

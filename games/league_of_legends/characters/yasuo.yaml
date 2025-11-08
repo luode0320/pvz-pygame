@@ -1,0 +1,120 @@
+# LOL - 亚索（展示前提条件系统和击飞连招）
+
+character_id: "yasuo"
+name: "亚索"
+type: defender  # 防守方
+cost: 175
+description: "疾风剑豪，拥有击飞连招和风墙防御"
+
+# 基础属性
+stats:
+  hp: 250
+  attack: 35
+  attack_range: 150  # 近战
+  attack_speed: 1.2
+  speed: 40
+
+# 技能列表 - 展示完整的击飞连招系统
+skills:
+  # 1. 斩钢闪 - 击飞技能
+  - skill_id: "steel_tempest"
+    name: "斩钢闪"
+    class: damage
+    type: auto
+    cooldown: 4.0
+    description: "对敌人造成伤害并击飞"
+    range: 150
+    target_type: enemy
+    max_targets: 1
+    damage: 30
+
+    # 击飞效果
+    effects:
+      - type: knockup
+        value: 100  # 击飞高度（用于渲染）
+        duration: 1.5  # 击飞持续1.5秒
+
+    animation_duration: 0.3
+    particle_effect: "wind_slash"
+
+  # 2. 狂风绝息斩 - 只能对击飞的敌人使用（前提条件系统）
+  - skill_id: "last_breath"
+    name: "狂风绝息斩"
+    class: damage
+    type: auto
+    cooldown: 10.0
+    description: "对击飞状态的敌人造成大量伤害"
+    range: 200
+    target_type: enemy
+    max_targets: 1
+    damage: 100
+
+    # 前提条件：目标必须处于击飞状态
+    prerequisites:
+      target_states: ["airborne"]  # 只能对击飞的敌人使用
+
+    # 额外效果：延长击飞时间
+    effects:
+      - type: knockup
+        value: 100
+        duration: 1.0  # 再延长1秒
+
+    animation_duration: 0.6
+    particle_effect: "ultimate_slash"
+
+  # 3. 风墙 - 提供短暂无敌效果
+  - skill_id: "wind_wall"
+    name: "风墙"
+    class: buff
+    type: auto
+    cooldown: 15.0
+    description: "生成风墙，短暂免疫伤害"
+    range: 100
+    target_type: self
+    max_targets: 1
+
+    # 前提条件：自身血量低于50%时才使用
+    prerequisites:
+      caster_max_hp_percent: 0.5  # 血量低于50%时触发
+
+    # 无敌效果
+    effects:
+      - type: invulnerable
+        value: 1
+        duration: 2.0  # 2秒无敌
+
+    animation_duration: 0.4
+    particle_effect: "wind_wall_effect"
+
+  # 4. 被动技能 - 击退攻击
+  - skill_id: "way_of_the_wanderer"
+    name: "浪人之道"
+    class: damage
+    type: passive
+    trigger_condition: on_attack
+    trigger_chance: 0.15  # 15%概率
+    description: "攻击时有几率击退敌人"
+    range: 150
+    target_type: enemy
+    max_targets: 1
+    damage: 20
+
+    # 击退效果
+    effects:
+      - type: knockback
+        value: 50  # 击退50像素
+        duration: 0.3
+
+    particle_effect: "knockback_hit"
+
+# 可用皮肤
+available_skins:
+  - "basic"
+  - "high_noon_yasuo"
+
+# 资源引用
+assets:
+  basic_sprite: "assets/sprites/yasuo.png"
+  basic_icon: "assets/icons/yasuo.png"
+  sound_attack: "assets/sounds/yasuo_attack.wav"
+  sound_death: "assets/sounds/yasuo_death.wav"

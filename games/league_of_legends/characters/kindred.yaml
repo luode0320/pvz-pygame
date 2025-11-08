@@ -1,0 +1,256 @@
+# LOL - 千珏（Kindred）- 展示技能弹道系统的完整功能
+# 演示：远程技能、追踪弹道、组合效果、多种弹道类型
+
+character_id: "kindred"
+name: "千珏"
+type: defender  # 防守方
+cost: 175
+description: "永猎双子，拥有多样化的远程技能和强大的生存能力"
+
+# 基础属性
+stats:
+  hp: 250
+  attack: 35
+  attack_range: 200  # 远程
+  attack_speed: 1.2
+  speed: 40
+
+# 攻击类型（普通攻击）
+attack_type: ranged
+
+# 普通攻击弹道配置
+projectile:
+  projectile_type: linear  # 直线弹道
+  speed: 500
+  size: 8
+  color: [200, 200, 255]  # 淡蓝色箭矢
+  pierce: false
+  splash_radius: 0
+  lifetime: 2.0
+
+# 技能列表 - 展示各种弹道类型和组合效果
+skills:
+  # 1. 直线穿透技能 - Pierce类型弹道
+  - skill_id: "piercing_arrow"
+    name: "穿刺之箭"
+    class: damage
+    type: auto
+    cooldown: 5.0
+    description: "发射穿透箭矢，可以贯穿多个敌人"
+    range: 300
+    target_type: enemy
+    max_targets: 1
+    damage: 40
+
+    # 技能攻击类型和弹道配置
+    attack_type: ranged
+    projectile:
+      projectile_type: pierce  # 穿透弹道
+      speed: 600
+      size: 10
+      color: [150, 255, 150]  # 绿色穿透箭
+      pierce: true
+      pierce_count: 3  # 最多穿透3个目标
+      splash_radius: 0
+      lifetime: 3.0
+
+    # 附加减速效果
+    effects:
+      - type: slow
+        value: 0.25  # 减速25%
+        duration: 2.0
+
+    animation_duration: 0.3
+    particle_effect: "piercing_arrow_trail"
+
+  # 2. 追踪弹道技能 - Homing类型 + 组合效果（流血+治疗）
+  - skill_id: "blood_hunt"
+    name: "血之狩猎"
+    class: damage
+    type: auto
+    cooldown: 8.0
+    description: "发射追踪箭矢，命中后造成流血效果并治疗自己"
+    range: 350
+    target_type: enemy
+    max_targets: 1
+    damage: 50
+
+    # 技能攻击类型和弹道配置
+    attack_type: ranged
+    projectile:
+      projectile_type: homing  # 追踪弹道（自动跟踪目标）
+      speed: 400
+      size: 12
+      color: [255, 100, 100]  # 红色追踪箭
+      pierce: false
+      splash_radius: 0
+      lifetime: 4.0
+      # 追踪弹道会自动调整方向追踪目标，无需额外配置
+
+    # 组合效果：对目标施加流血 + 对施法者治疗
+    effects:
+      - type: bleed
+        value: 15  # 每秒15点流血伤害
+        duration: 5.0
+
+      # 注意：heal效果需要在projectile_system中特殊处理
+      # 当弹道命中时，heal效果会作用于施法者（caster）
+      - type: heal
+        value: 40  # 治疗施法者40点生命值
+        duration: 0.1
+
+    animation_duration: 0.4
+    particle_effect: "blood_hunt_effect"
+
+  # 3. 抛物线AOE技能 - Arc类型 + 范围伤害
+  - skill_id: "explosive_shot"
+    name: "爆炸射击"
+    class: aoe
+    type: auto
+    cooldown: 12.0
+    description: "发射抛物线箭矢，落地后爆炸造成范围伤害和燃烧"
+    range: 400
+    aoe_radius: 100
+    target_type: enemy
+    max_targets: 8
+    damage: 60
+
+    # 技能攻击类型和弹道配置
+    attack_type: ranged
+    projectile:
+      projectile_type: arc  # 抛物线弹道（有弧度）
+      speed: 350
+      size: 15
+      color: [255, 150, 0]  # 橙色爆炸箭
+      pierce: false
+      splash_radius: 100  # 爆炸范围
+      lifetime: 5.0
+
+    # AOE燃烧效果
+    effects:
+      - type: burn
+        value: 20  # 每秒20点燃烧伤害
+        duration: 4.0
+
+      - type: slow
+        value: 0.3  # 减速30%
+        duration: 2.0
+
+    animation_duration: 0.5
+    particle_effect: "explosion"
+
+  # 4. 瞬发治疗技能（展示对比：无弹道的技能）
+  - skill_id: "lambs_respite"
+    name: "羊灵生息"
+    class: heal
+    type: auto
+    cooldown: 15.0
+    description: "瞬间治疗自己和附近友军"
+    range: 150
+    target_type: ally
+    max_targets: 3
+    damage: 50  # 治疗量
+
+    # 瞬发技能，无需弹道
+    attack_type: instant
+
+    # 额外效果：短暂无敌
+    effects:
+      - type: invulnerable
+        value: 1.0
+        duration: 2.0  # 2秒无敌
+
+    animation_duration: 0.4
+    particle_effect: "healing_aura"
+
+  # 5. 追踪多目标技能 - 向多个目标发射追踪弹
+  - skill_id: "spirit_arrows"
+    name: "灵魂箭雨"
+    class: damage
+    type: auto
+    cooldown: 10.0
+    description: "向多个敌人发射追踪箭矢"
+    range: 300
+    target_type: enemy
+    max_targets: 4  # 最多4个目标
+    damage: 30
+
+    # 技能攻击类型和弹道配置
+    attack_type: ranged
+    projectile:
+      projectile_type: homing  # 追踪弹道
+      speed: 450
+      size: 8
+      color: [200, 150, 255]  # 紫色灵魂箭
+      pierce: false
+      splash_radius: 0
+      lifetime: 3.0
+
+    # 附加效果
+    effects:
+      - type: movement_speed_boost
+        value: 0.2  # 施法者获得20%移速加成
+        duration: 3.0
+
+    animation_duration: 0.3
+    particle_effect: "spirit_shot"
+
+  # 6. 条件触发技能 - 展示前提条件系统
+  - skill_id: "executioners_mark"
+    name: "处决标记"
+    class: damage
+    type: auto
+    cooldown: 20.0
+    description: "对低血量敌人造成巨额伤害（仅在目标血量低于30%时可用）"
+    range: 250
+    target_type: enemy
+    max_targets: 1
+    damage: 150  # 高额伤害
+
+    # 前提条件：目标血量必须低于30%
+    prerequisites:
+      target_min_hp_percent: 0
+      target_max_hp_percent: 0.3  # 血量低于30%
+
+    # 技能攻击类型和弹道配置
+    attack_type: ranged
+    projectile:
+      projectile_type: homing  # 快速追踪
+      speed: 700
+      size: 15
+      color: [255, 50, 50]  # 深红色处决箭
+      pierce: false
+      splash_radius: 0
+      lifetime: 2.0
+
+    animation_duration: 0.3
+    particle_effect: "execute_mark"
+
+# 角色独属被动特质
+passive_traits:
+  # 暴击系统
+  - type: crit_rate
+    value: 0.20  # 20%暴击率
+
+  - type: crit_damage
+    value: 2.0  # 200%暴击伤害
+
+  # 攻击吸血
+  - type: lifesteal
+    value: 0.15  # 15%吸血
+
+  # 额外移速
+  - type: bonus_move_speed
+    value: 0.1  # 额外10%移速
+
+# 可用皮肤
+available_skins:
+  - "basic"
+  - "spirit_blossom_kindred"
+
+# 资源引用
+assets:
+  basic_sprite: "assets/sprites/kindred.png"
+  basic_icon: "assets/icons/kindred.png"
+  sound_attack: "assets/sounds/kindred_attack.wav"
+  sound_death: "assets/sounds/kindred_death.wav"

@@ -1,0 +1,138 @@
+# LOL - 拉克丝角色配置（示例角色，展示技能系统功能）
+
+character_id: "lux"
+name: "拉克丝"
+type: defender  # 防守方
+cost: 125
+description: "光辉女郎，拥有强大的远程魔法和控制能力"
+
+# 基础属性
+stats:
+  hp: 200
+  attack: 25
+  attack_range: 250  # 远程
+  attack_speed: 0.8
+  speed: 30
+
+# 攻击类型
+attack_type: ranged  # ranged（远程）或 melee（近战）
+
+# 弹道配置（远程攻击专用）
+projectile:
+  projectile_type: linear  # linear（直线）, arc（抛物线）, homing（追踪）, pierce（穿透）
+  speed: 400  # 弹道速度（像素/秒）
+  size: 8  # 弹道大小
+  color: [255, 220, 100]  # 弹道颜色（金色光球）
+  pierce: false  # 不穿透
+  splash_radius: 0  # 无溅射
+  on_hit_effects: []  # 命中时的效果
+  lifetime: 3.0  # 最大存活时间（秒）
+
+# 技能列表（展示完整的技能系统功能）
+skills:
+  # 1. 伤害技能示例
+  - skill_id: "light_binding"
+    name: "光之束缚"
+    class: damage  # 单体伤害技能
+    type: auto  # 自动施放
+    cooldown: 6.0
+    description: "发射光球束缚敌人，造成伤害并眩晕"
+    range: 250
+    target_type: enemy
+    max_targets: 1
+    damage: 40
+
+    # 眩晕效果
+    effects:
+      - type: stun
+        value: 1.0
+        duration: 1.5
+
+    animation_duration: 0.3
+    particle_effect: "light_projectile"
+
+  # 2. AOE技能示例
+  - skill_id: "lucent_singularity"
+    name: "透光奇点"
+    class: aoe  # AOE伤害技能
+    type: auto
+    cooldown: 10.0
+    description: "在目标区域制造光球，对范围内敌人造成伤害并减速"
+    range: 300
+    aoe_radius: 100
+    target_type: enemy
+    max_targets: 8
+    damage: 50
+
+    # 减速效果
+    effects:
+      - type: slow
+        value: 0.4  # 减速40%
+        duration: 2.0
+
+    animation_duration: 0.5
+    particle_effect: "light_explosion"
+
+  # 3. 治疗技能示例
+  - skill_id: "prismatic_barrier"
+    name: "棱彩屏障"
+    class: heal  # 治疗技能
+    type: auto
+    cooldown: 12.0
+    description: "为附近友军提供护盾，恢复生命值"
+    range: 200
+    target_type: ally
+    max_targets: 3
+    damage: 30  # 使用damage字段表示治疗量
+
+    # 额外防御效果
+    effects:
+      - type: defense_boost
+        value: 0.2  # 减少20%伤害
+        duration: 3.0
+
+    animation_duration: 0.4
+    particle_effect: "shield_glow"
+
+  # 4. 召唤技能示例
+  - skill_id: "summon_light_guardian"
+    name: "召唤光之守卫"
+    class: summon  # 召唤技能
+    type: auto
+    cooldown: 20.0
+    description: "召唤一个光之守卫协助战斗"
+    range: 150
+    summon_character_id: "light_guardian"  # 召唤物的character_id
+    summon_count: 1
+    summon_duration: 15.0  # 存活15秒
+
+    animation_duration: 0.6
+    particle_effect: "summon_flash"
+
+  # 5. 被动技能示例
+  - skill_id: "illumination"
+    name: "光芒四射"
+    class: damage
+    type: passive  # 被动技能
+    trigger_condition: on_attack  # 攻击时触发
+    trigger_chance: 0.25  # 25%概率
+    description: "攻击时有几率造成额外魔法伤害"
+    range: 300
+    target_type: enemy
+    max_targets: 1
+    damage: 20
+
+    animation_duration: 0.2
+    particle_effect: "light_burst"
+
+# 可用皮肤
+available_skins:
+  - "basic"
+  - "elementalist_lux"
+
+# 资源引用
+assets:
+  basic_sprite: "assets/sprites/lux.png"
+  basic_icon: "assets/icons/lux.png"
+  sound_attack: "assets/sounds/lux_attack.wav"
+  sound_death: "assets/sounds/lux_death.wav"

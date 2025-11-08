@@ -7,6 +7,9 @@ import pygame
 import logging
 import time
 from typing import List, Dict, Optional, Tuple
+from core.skill_system import SkillManager
+from core.projectile_system import ProjectileManager
+from core.passive_traits_system import PassiveTraitsManager
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +17,7 @@ logger = logging.getLogger(__name__)
 class Defender:
     """防守单位（玩家放置的角色）"""
 
-    def __init__(self, character_config: dict, grid_x: int, grid_y: int, cell_size: int = 80):
+    def __init__(self, character_config: dict, grid_x: int, grid_y: int, cell_size: int = 80, skill_manager: Optional[SkillManager] = None):
         self.character_id = character_config.get('character_id', 'unknown')
         self.name = character_config.get('name', '未知角色')
         self.config = character_config
@@ -32,6 +35,10 @@ class Defender:
         self.attack_range = stats.get('attack_range', 200)
         self.attack_speed = stats.get('attack_speed', 1.0)
 
+        # 攻击类型和弹道配置
+        self.attack_type = character_config.get('attack_type', 'melee')  # melee（近战）或 ranged（远程）
+        self.projectile_config = character_config.get('projectile', {})  # 远程攻击的弹道配置
+
         # 攻击计时
         self.attack_cooldown = 0
         self.attack_interval = 1.0 / self.attack_speed
@@ -43,14 +50,65 @@ class Defender:
         self.animation_state = "idle"
         self.animation_time = 0
 
+        # 技能系统
+        self.skills: List = []
+        self.active_effects: List = []
+
+        # 控制状态
+        self.is_stunned = False  # 眩晕
+        self.is_rooted = False  # 定身
+        self.is_silenced = False  # 沉默
+        self.is_disarmed = False  # 缴械
+        self.is_feared = False  # 恐惧
+        self.is_taunted = False  # 嘲讽
+        self.is_airborne = False  # 击飞
+        self.is_knocked_back = False  # 击退
+
+        # 特殊状态
+        self.is_invulnerable = False  # 无敌
+        self.is_invisible = False  # 隐身
+        self.is_summoned = False  # 是否是召唤物
+        self.summon_timer = 0  # 召唤物存活时间
+
+        # 加载技能
+        if skill_manager:
+            self.skills = skill_manager.load_skills_for_character(character_config)
+
+        # 应用被动特质的属性加成
+        passive_traits_manager = PassiveTraitsManager()
+        passive_traits_manager.apply_stat_bonuses(self)
+
     def get_screen_pos(self, grid_start_x: int, grid_start_y: int, cell_size: int) -> Tuple[int, int]:
         """获取屏幕坐标"""
         x = grid_start_x + self.grid_x * cell_size + cell_size // 2
         y = grid_start_y + self.grid_y * cell_size + cell_size // 2
         return x, y
 
-    def update(self, delta_time: float, enemies: List['Enemy']):
+    def update(self, delta_time: float, enemies: List['Enemy'], skill_manager: Optional[SkillManager] = None, battle_manager = None, projectile_manager = None):
         """更新防守单位"""
+        # 更新召唤物计时器
+        if self.is_summoned and self.summon_timer > 0:
+            self.summon_timer -= delta_time
+            if self.summon_timer <= 0:
+                self.hp = 0  # 时间到，消失
+                return
+
+        # 更新技能效果
+        if skill_manager:
+            skill_manager.update_unit_effects(self, delta_time)
+
+        # 应用被动特质（如生命回复）
+        if battle_manager and hasattr(battle_manager, 'passive_traits_manager'):
+            battle_manager.passive_traits_manager.apply_passive_traits(self, delta_time, battle_manager)
+
+        # 如果被眩晕或击飞，无法行动
+        if self.is_stunned or self.is_airborne:
+            return
+
+        # 更新技能冷却
+        for skill in self.skills:
+            skill.update(delta_time)
+
         # 更新攻击冷却
         if self.attack_cooldown > 0:
             self.attack_cooldown -= delta_time
@@ -58,18 +116,34 @@ class Defender:
         # 更新动画时间
         self.animation_time += delta_time
 
-        # 查找目标
-        if self.target is None or not self.target.is_alive():
-            self.find_target(enemies)
+        # 查找目标（如果被嘲讽，强制攻击嘲讽目标）
+        if self.is_taunted and hasattr(self, 'taunt_target'):
+            if self.taunt_target and self.taunt_target.is_alive():
+                self.target = self.taunt_target
+            else:
+                self.target = None
+        elif self.target is None or not self.target.is_alive():
+            # 隐身的敌人不能被选中
+            visible_enemies = [e for e in enemies if not getattr(e, 'is_invisible', False)]
+            if visible_enemies:
+                self.find_target(visible_enemies)
 
-        # 攻击目标
-        if self.target and self.attack_cooldown <= 0:
+        # 自动施放技能（除非被沉默）
+        if skill_manager and battle_manager and not self.is_silenced:
+            skill_manager.auto_cast_skills(self, battle_manager)
+
+        # 攻击目标（除非被缴械）
+        if self.target and self.attack_cooldown <= 0 and not self.is_disarmed:
             distance = abs(self.target.x - self.grid_x * self.cell_size)
             if distance <= self.attack_range:
-                self.attack_target()
+                self.attack_target(projectile_manager, battle_manager)
                 self.attack_cooldown = self.attack_interval
                 self.animation_state = "attack"
                 self.animation_time = 0
+
+                # 触发攻击时的被动技能
+                if skill_manager and battle_manager:
+                    skill_manager.trigger_passive_skill(self, 'on_attack', battle_manager)
             else:
                 self.target = None
                 self.animation_state = "idle"
@@ -92,14 +166,30 @@ class Defender:
 
         self.target = closest
 
-    def attack_target(self):
+    def attack_target(self, projectile_manager=None, battle_manager=None):
         """攻击目标"""
         if self.target and self.target.is_alive():
-            self.target.take_damage(self.attack)
-            logger.debug(f"{self.name} 攻击 {self.target.name}，造成 {self.attack} 伤害")
+            if self.attack_type == 'ranged' and projectile_manager and battle_manager:
+                # 远程攻击：发射弹道
+                projectile_config = self.projectile_config.copy()
+                projectile_config['damage'] = self.attack
+                projectile_manager.create_projectile(self, self.target, projectile_config, battle_manager)
+                logger.debug(f"{self.name} 向 {self.target.name} 发射弹道")
+            else:
+                # 近战攻击：直接造成伤害
+                self.target.take_damage(self.attack)
+                logger.debug(f"{self.name} 攻击 {self.target.name}，造成 {self.attack} 伤害")
 
     def take_damage(self, damage: int):
         """受到伤害"""
+        # 无敌状态免疫所有伤害
+        if getattr(self, 'is_invulnerable', False):
+            return
+
+        # 应用防御减免
+        if hasattr(self, '_defense_multiplier'):
+            damage = int(damage * self._defense_multiplier)
+
         self.hp -= damage
         if self.hp < 0:
             self.hp = 0
@@ -143,7 +233,7 @@ class Enemy:
 
     def __init__(self, character_config: dict, lane: int, screen_width: int,
                  health_multiplier: float = 1.0, attack_interval: float = 2.0,
-                 default_speed: int = 20, block_distance: int = 50):
+                 default_speed: int = 20, block_distance: int = 50, skill_manager: Optional[SkillManager] = None):
         self.character_id = character_config.get('character_id', 'unknown')
         self.name = character_config.get('name', '未知敌人')
         self.config = character_config
@@ -161,6 +251,10 @@ class Enemy:
         if self.speed == 0:  # 如果配置为0，使用默认速度
             self.speed = default_speed
 
+        # 攻击类型和弹道配置
+        self.attack_type = character_config.get('attack_type', 'melee')  # melee（近战）或 ranged（远程）
+        self.projectile_config = character_config.get('projectile', {})  # 远程攻击的弹道配置
+
         # 攻击计时（从配置读取）
         self.attack_cooldown = 0
         self.attack_interval = attack_interval
@@ -171,33 +265,107 @@ class Enemy:
         # 状态
         self.blocked_by: Optional[Defender] = None
 
-    def update(self, delta_time: float, defenders: List[Defender], grid_start_x: int, cell_size: int):
+        # 技能系统
+        self.skills: List = []
+        self.active_effects: List = []
+
+        # 控制状态
+        self.is_stunned = False  # 眩晕
+        self.is_rooted = False  # 定身
+        self.is_silenced = False  # 沉默
+        self.is_disarmed = False  # 缴械
+        self.is_feared = False  # 恐惧
+        self.is_taunted = False  # 嘲讽
+        self.is_airborne = False  # 击飞
+        self.is_knocked_back = False  # 击退
+
+        # 特殊状态
+        self.is_invulnerable = False  # 无敌
+        self.is_invisible = False  # 隐身
+        self.is_boss = character_config.get('is_boss', False)  # Boss标记
+
+        # 加载技能
+        if skill_manager:
+            self.skills = skill_manager.load_skills_for_character(character_config)
+
+        # 应用被动特质的属性加成
+        passive_traits_manager = PassiveTraitsManager()
+        passive_traits_manager.apply_stat_bonuses(self)
+
+    def update(self, delta_time: float, defenders: List[Defender], grid_start_x: int, cell_size: int, skill_manager: Optional[SkillManager] = None, battle_manager = None, projectile_manager = None):
         """更新敌人"""
+        # 更新技能效果
+        if skill_manager:
+            skill_manager.update_unit_effects(self, delta_time)
+
+        # 应用被动特质（如生命回复）
+        if battle_manager and hasattr(battle_manager, 'passive_traits_manager'):
+            battle_manager.passive_traits_manager.apply_passive_traits(self, delta_time, battle_manager)
+
+        # 如果被眩晕或击飞，无法行动
+        if self.is_stunned or self.is_airborne:
+            return
+
+        # 更新技能冷却
+        for skill in self.skills:
+            skill.update(delta_time)
+
         # 更新攻击冷却
         if self.attack_cooldown > 0:
             self.attack_cooldown -= delta_time
 
-        # 检查是否被阻挡
+        # 自动施放技能（除非被沉默）
+        if skill_manager and battle_manager and not self.is_silenced:
+            skill_manager.auto_cast_skills(self, battle_manager)
+
+        # 检查是否被阻挡（隐身的defender不能阻挡）
         self.blocked_by = None
         for defender in defenders:
-            if defender.grid_y == self.lane and defender.is_alive():
+            if defender.grid_y == self.lane and defender.is_alive() and not getattr(defender, 'is_invisible', False):
                 defender_x = grid_start_x + defender.grid_x * cell_size + cell_size // 2
                 if abs(self.x - defender_x) < self.block_distance:
                     self.blocked_by = defender
                     break
 
-        # 如果被阻挡，攻击防守单位
+        # 如果被阻挡，攻击防守单位（除非被缴械）
         if self.blocked_by:
-            if self.attack_cooldown <= 0:
-                self.blocked_by.take_damage(self.attack)
+            if self.attack_cooldown <= 0 and not self.is_disarmed:
+                if self.attack_type == 'ranged' and projectile_manager and battle_manager:
+                    # 远程攻击：发射弹道
+                    projectile_config = self.projectile_config.copy()
+                    projectile_config['damage'] = self.attack
+                    projectile_manager.create_projectile(self, self.blocked_by, projectile_config, battle_manager)
+                    logger.debug(f"{self.name} 向 {self.blocked_by.name} 发射弹道")
+                else:
+                    # 近战攻击：直接造成伤害
+                    self.blocked_by.take_damage(self.attack)
+                    logger.debug(f"{self.name} 攻击 {self.blocked_by.name}，造成 {self.attack} 伤害")
+
                 self.attack_cooldown = self.attack_interval
-                logger.debug(f"{self.name} 攻击 {self.blocked_by.name}，造成 {self.attack} 伤害")
+
+                # 触发攻击时的被动技能
+                if skill_manager and battle_manager:
+                    skill_manager.trigger_passive_skill(self, 'on_attack', battle_manager)
         else:
-            # 继续前进
-            self.x -= self.speed * delta_time
+            # 移动逻辑
+            if self.is_feared:
+                # 恐惧状态：随机移动
+                fear_direction = getattr(self, 'fear_direction', 1)
+                self.x += self.speed * delta_time * fear_direction
+            elif not self.is_rooted:
+                # 正常前进（除非被定身）
+                self.x -= self.speed * delta_time
 
     def take_damage(self, damage: int):
         """受到伤害"""
+        # 无敌状态免疫所有伤害
+        if getattr(self, 'is_invulnerable', False):
+            return
+
+        # 应用防御减免
+        if hasattr(self, '_defense_multiplier'):
+            damage = int(damage * self._defense_multiplier)
+
         self.hp -= damage
         if self.hp < 0:
             self.hp = 0
@@ -254,6 +422,15 @@ class BattleManager:
         self.config_loader = config_loader
         self.level_config = level_config
         self.settings = settings
+
+        # 技能管理器
+        self.skill_manager = SkillManager()
+
+        # 弹道管理器
+        self.projectile_manager = ProjectileManager()
+
+        # 被动特质管理器
+        self.passive_traits_manager = PassiveTraitsManager()
 
         # 三级配置fallback：关卡配置 -> 全局配置 -> 硬编码默认值
         def get_config_value(level_key: str, global_section: str, config_key: str, default_value):
@@ -375,16 +552,19 @@ class BattleManager:
         # 生成波次
         self._spawn_waves(screen_width)
 
+        # 更新弹道
+        self.projectile_manager.update(delta_time)
+
         # 更新防守单位
         for defender in self.defenders[:]:
-            defender.update(delta_time, self.enemies)
+            defender.update(delta_time, self.enemies, self.skill_manager, self, self.projectile_manager)
             if not defender.is_alive():
                 self.defenders.remove(defender)
                 self.grid[defender.grid_y][defender.grid_x] = None
 
         # 更新敌人
         for enemy in self.enemies[:]:
-            enemy.update(delta_time, self.defenders, self.grid_start_x, self.cell_size)
+            enemy.update(delta_time, self.defenders, self.grid_start_x, self.cell_size, self.skill_manager, self, self.projectile_manager)
 
             # 检查是否死亡
             if not enemy.is_alive():
@@ -427,7 +607,8 @@ class BattleManager:
                                 health_mult,
                                 self.enemy_attack_interval,
                                 self.default_enemy_speed,
-                                self.block_distance
+                                self.block_distance,
+                                self.skill_manager
                             )
                             self.enemies.append(enemy)
 
@@ -479,7 +660,7 @@ class BattleManager:
             return False
 
         # 创建防守单位
-        defender = Defender(card['config'], grid_x, grid_y, self.cell_size)
+        defender = Defender(card['config'], grid_x, grid_y, self.cell_size, self.skill_manager)
         self.defenders.append(defender)
         self.grid[grid_y][grid_x] = defender
 
@@ -502,6 +683,9 @@ class BattleManager:
         # 绘制敌人
         for enemy in self.enemies:
             enemy.render(screen, fonts['small'], self.grid_start_y, self.cell_size)
+
+        # 绘制弹道
+        self.projectile_manager.render(screen)
 
         # 绘制卡片槽
         self._render_card_slots(screen, fonts)
@@ -594,6 +778,29 @@ class BattleManager:
             (255, 150, 150)
         )
         screen.blit(enemy_text, (screen.get_width() - 200, 55))
+
+    def create_particle_effect(self, effect_type: str, target):
+        """
+        创建粒子特效（占位方法，将在打击感反馈系统中实现）
+
+        参数:
+            effect_type: 特效类型
+            target: 目标单位
+        """
+        # TODO: 在打击感反馈系统中实现
+        pass
+
+    def create_aoe_effect(self, effect_type: str, center_pos: Tuple[int, int], radius: float):
+        """
+        创建范围特效（占位方法，将在打击感反馈系统中实现）
+
+        参数:
+            effect_type: 特效类型
+            center_pos: 中心位置
+            radius: 范围半径
+        """
+        # TODO: 在打击感反馈系统中实现
+        pass
 
     def handle_click(self, mouse_x: int, mouse_y: int, screen_height: int):
         """处理鼠标点击"""
