@@ -505,8 +505,8 @@ class CrossVerseArena:
         # 渲染战斗场景
         self.battle_manager.render(screen, self.fonts)
 
-        # 绘制菜单按钮（右上角）
-        menu_button_rect = pygame.Rect(screen.get_width() - 140, 50, 120, 40)
+        # 绘制菜单按钮（右上角，调整位置避免重叠）
+        menu_button_rect = pygame.Rect(screen.get_width() - 140, 85, 120, 40)
         mouse_pos = pygame.mouse.get_pos()
         is_hover = menu_button_rect.collidepoint(mouse_pos)
 
@@ -541,19 +541,17 @@ class CrossVerseArena:
         # 更新鼠标状态
         self.mouse_pressed_last_frame = mouse_pressed
 
-        # 显示FPS
-        fps_text = self.fonts['small'].render(f"FPS: {self.engine.get_fps():.1f}", True, (200, 200, 200))
-        screen.blit(fps_text, (screen.get_width() - 120, 20))
+        # 显示FPS（移到右下角避免重叠）
+        fps_text = self.fonts['small'].render(f"FPS: {self.engine.get_fps():.1f}", True, (150, 150, 150))
+        screen.blit(fps_text, (screen.get_width() - 100, screen.get_height() - 30))
 
-        # 底部游戏提示
-        hint_y = screen.get_height() - 20
+        # 底部游戏提示（左下角，避免和FPS重叠）
         hint_text = self.fonts['small'].render(
-            "提示: 点击卡片后点击网格放置单位 | ESC 打开菜单",
+            "点击卡片→点击网格放置 | ESC菜单",
             True,
-            (180, 180, 180)
+            (160, 160, 160)
         )
-        hint_rect = hint_text.get_rect(center=(screen.get_width() // 2, hint_y))
-        screen.blit(hint_text, hint_rect)
+        screen.blit(hint_text, (20, screen.get_height() - 30))
 
         # 检查游戏结束
         if self.battle_manager.game_over:
@@ -692,8 +690,13 @@ class CrossVerseArena:
             # 处理点击
             if is_hover and mouse_clicked:
                 if action == "next":
-                    # TODO: 实现下一关逻辑
-                    logger.info("进入下一关")
+                    # TODO: 实现下一关逻辑（暂时重新开始本关）
+                    logger.info("进入下一关（暂时重新开始本关）")
+                    # 重新初始化战斗管理器
+                    if self.current_level_config and self.selected_characters:
+                        self.battle_manager = BattleManager(self.config_loader, self.current_level_config)
+                        self.battle_manager.selected_characters = self.selected_characters.copy()
+                        self.battle_manager._init_card_slots()
                     self.engine.change_state(GameState.BATTLE)
                 elif action == "menu":
                     self.engine.change_state(GameState.MENU)
@@ -761,6 +764,12 @@ class CrossVerseArena:
             if is_hover and mouse_clicked:
                 if action == "retry":
                     logger.info("重试关卡")
+                    # 重新初始化战斗管理器
+                    if self.current_level_config and self.selected_characters:
+                        self.battle_manager = BattleManager(self.config_loader, self.current_level_config)
+                        self.battle_manager.selected_characters = self.selected_characters.copy()
+                        self.battle_manager._init_card_slots()
+                        logger.info("战斗管理器已重新初始化")
                     self.engine.change_state(GameState.BATTLE)
                 elif action == "menu":
                     self.engine.change_state(GameState.MENU)

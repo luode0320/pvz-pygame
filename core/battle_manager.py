@@ -522,22 +522,34 @@ class BattleManager:
                 screen.blit(cooldown_text, cooldown_rect)
 
     def _render_ui(self, screen: pygame.Surface, fonts: dict):
-        """渲染UI信息"""
-        # 基地血量
-        hp_text = fonts['normal'].render(f"基地 HP: {max(0, self.base_hp)} / {self.base_max_hp}", True, (255, 100, 100))
-        screen.blit(hp_text, (20, 20))
+        """渲染UI信息（调整布局避免重叠）"""
+        # 基地血量 - 紧凑显示在左上角
+        hp_text = fonts['small'].render(f"基地: {max(0, self.base_hp)}/{self.base_max_hp}", True, (255, 100, 100))
+        screen.blit(hp_text, (20, 30))
 
-        # 金币
-        gold_text = fonts['normal'].render(f"金币: {self.gold}", True, (255, 200, 50))
-        screen.blit(gold_text, (20, 60))
+        # 金币 - 在基地血量下方
+        gold_text = fonts['small'].render(f"金币: {self.gold}", True, (255, 200, 50))
+        screen.blit(gold_text, (20, 65))
 
-        # 波次信息
+        # 金币生成提示 - 在金币下方
+        gold_gen_text = fonts['small'].render(f"+{self.gold_generation_rate}/秒", True, (180, 150, 50))
+        screen.blit(gold_gen_text, (20, 95))
+
+        # 波次信息 - 右上角，避开菜单按钮
         wave_text = fonts['small'].render(
-            f"波次: {self.current_wave_index}/{len(self.waves)} | 敌人: {len(self.enemies)}",
+            f"波次: {self.current_wave_index}/{len(self.waves)}",
             True,
             (200, 200, 200)
         )
-        screen.blit(wave_text, (screen.get_width() - 300, 60))
+        screen.blit(wave_text, (screen.get_width() - 200, 30))
+
+        # 敌人数量 - 在波次下方
+        enemy_text = fonts['small'].render(
+            f"敌人: {len(self.enemies)}",
+            True,
+            (255, 150, 150)
+        )
+        screen.blit(enemy_text, (screen.get_width() - 200, 55))
 
     def handle_click(self, mouse_x: int, mouse_y: int, screen_height: int):
         """处理鼠标点击"""
