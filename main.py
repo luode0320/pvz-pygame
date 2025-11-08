@@ -218,9 +218,18 @@ class CrossVerseArena:
             stat_text = self.fonts['small'].render(stat, True, (150, 150, 150))
             screen.blit(stat_text, (20, 20 + i * 30))
 
-        # 显示提示
-        tip = self.fonts['small'].render("按 Ctrl+Shift+D 打开管理界面", True, (100, 150, 100))
-        screen.blit(tip, (screen.get_width() - 300, screen.get_height() - 40))
+        # 底部提示信息
+        tips = [
+            "F11 或 Alt+Enter: 切换全屏",
+            "ESC: 返回上一级 / 暂停游戏",
+            "Ctrl+Shift+D: 打开管理界面"
+        ]
+
+        for i, tip_text in enumerate(tips):
+            color = (100, 150, 100) if i == 2 else (120, 120, 150)
+            tip = self.fonts['small'].render(tip_text, True, color)
+            tip_rect = tip.get_rect(center=(screen.get_width() // 2, screen.get_height() - 80 + i * 25))
+            screen.blit(tip, tip_rect)
 
     def state_campaign_select(self, screen: pygame.Surface, delta_time: float):
         """战役选择状态处理"""
@@ -259,23 +268,29 @@ class CrossVerseArena:
                     600,
                     70
                 )
-                pygame.draw.rect(screen, (60, 60, 100), click_rect, 2)
 
-                if pygame.mouse.get_pressed()[0]:
-                    if click_rect.collidepoint(pygame.mouse.get_pos()):
-                        logger.info(f"选择战役: {campaign_name}")
-                        self.engine.change_state(GameState.BATTLE)
+                # 检测悬停
+                is_hover = click_rect.collidepoint(pygame.mouse.get_pos())
+                border_color = (100, 100, 180) if is_hover else (60, 60, 100)
+                border_width = 3 if is_hover else 2
+                pygame.draw.rect(screen, border_color, click_rect, border_width)
+
+                if pygame.mouse.get_pressed()[0] and is_hover:
+                    logger.info(f"选择战役: {campaign_name}")
+                    self.engine.change_state(GameState.BATTLE)
+                    pygame.time.wait(200)
 
                 y += 100
 
         # 返回按钮
-        back_text = self.fonts['normal'].render("返回", True, (200, 200, 200))
+        back_text = self.fonts['normal'].render("返回 (ESC)", True, (200, 200, 200))
         back_rect = back_text.get_rect(topleft=(40, 40))
         screen.blit(back_text, back_rect)
 
         if pygame.mouse.get_pressed()[0]:
             if back_rect.collidepoint(pygame.mouse.get_pos()):
                 self.engine.change_state(GameState.MENU)
+                pygame.time.wait(200)
 
     def state_battle(self, screen: pygame.Surface, delta_time: float):
         """战斗状态处理"""
@@ -297,13 +312,43 @@ class CrossVerseArena:
         screen.blit(resource_text, (20, 60))
 
         # 显示FPS
-        fps_text = self.fonts['normal'].render(f"FPS: {self.engine.get_fps():.1f}", True, (200, 200, 200))
-        screen.blit(fps_text, (screen.get_width() - 150, 20))
+        fps_text = self.fonts['small'].render(f"FPS: {self.engine.get_fps():.1f}", True, (200, 200, 200))
+        screen.blit(fps_text, (screen.get_width() - 120, 20))
 
-        # 暂停按钮
-        pause_text = self.fonts['normal'].render("暂停 (ESC)", True, (200, 200, 200))
-        pause_rect = pause_text.get_rect(topright=(screen.get_width() - 20, 60))
-        screen.blit(pause_text, pause_rect)
+        # 绘制菜单按钮（右上角）
+        menu_button_rect = pygame.Rect(screen.get_width() - 140, 50, 120, 40)
+        mouse_pos = pygame.mouse.get_pos()
+        is_hover = menu_button_rect.collidepoint(mouse_pos)
+
+        # 按钮背景和边框
+        if is_hover:
+            pygame.draw.rect(screen, (80, 100, 120), menu_button_rect)
+            pygame.draw.rect(screen, (150, 180, 220), menu_button_rect, 3)
+            button_color = (255, 255, 100)
+        else:
+            pygame.draw.rect(screen, (50, 70, 90), menu_button_rect)
+            pygame.draw.rect(screen, (100, 130, 160), menu_button_rect, 2)
+            button_color = (220, 220, 220)
+
+        # 按钮文字
+        pause_text = self.fonts['small'].render("菜单 (ESC)", True, button_color)
+        pause_text_rect = pause_text.get_rect(center=menu_button_rect.center)
+        screen.blit(pause_text, pause_text_rect)
+
+        # 处理点击
+        if is_hover and pygame.mouse.get_pressed()[0]:
+            self.engine.change_state(GameState.PAUSE)
+            pygame.time.wait(200)  # 避免重复点击
+
+        # 底部游戏提示
+        hint_y = screen.get_height() - 40
+        hint_text = self.fonts['small'].render(
+            "提示: ESC 打开菜单 | F11 切换全屏 | 点击卡片放置单位",
+            True,
+            (180, 180, 180)
+        )
+        hint_rect = hint_text.get_rect(center=(screen.get_width() // 2, hint_y))
+        screen.blit(hint_text, hint_rect)
 
         # 更新性能监控
         if self.performance_monitor:
@@ -313,34 +358,205 @@ class CrossVerseArena:
         """暂停状态处理"""
         # 绘制半透明遮罩
         overlay = pygame.Surface(screen.get_size(), pygame.SRCALPHA)
-        overlay.fill((0, 0, 0, 128))
+        overlay.fill((0, 0, 0, 180))
         screen.blit(overlay, (0, 0))
 
         # 暂停文字
-        title = self.fonts['huge'].render("暂停", True, (255, 255, 255))
-        title_rect = title.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 - 50))
+        title = self.fonts['huge'].render("游戏暂停", True, (255, 255, 255))
+        title_rect = title.get_rect(center=(screen.get_width() // 2, 180))
         screen.blit(title, title_rect)
 
-        # 提示
-        hint = self.fonts['normal'].render("按 ESC 继续", True, (200, 200, 200))
-        hint_rect = hint.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 + 30))
-        screen.blit(hint, hint_rect)
+        # 菜单选项
+        menu_items = [
+            ("继续游戏 (ESC)", "resume"),
+            ("返回战役选择", "campaign"),
+            ("返回主菜单", "menu"),
+            ("退出游戏", "quit")
+        ]
+
+        y_start = 300
+        mouse_pos = pygame.mouse.get_pos()
+        mouse_clicked = pygame.mouse.get_pressed()[0]
+
+        for i, (text, action) in enumerate(menu_items):
+            # 计算按钮位置
+            button_y = y_start + i * 80
+            button_rect = pygame.Rect(
+                screen.get_width() // 2 - 200,
+                button_y - 25,
+                400,
+                60
+            )
+
+            # 检测鼠标悬停
+            is_hover = button_rect.collidepoint(mouse_pos)
+
+            # 绘制按钮背景
+            if is_hover:
+                pygame.draw.rect(screen, (80, 80, 120), button_rect)
+                pygame.draw.rect(screen, (150, 150, 200), button_rect, 3)
+                color = (255, 255, 100)
+            else:
+                pygame.draw.rect(screen, (40, 40, 60), button_rect)
+                pygame.draw.rect(screen, (100, 100, 140), button_rect, 2)
+                color = (220, 220, 220)
+
+            # 绘制文字
+            menu_text = self.fonts['large'].render(text, True, color)
+            text_rect = menu_text.get_rect(center=(screen.get_width() // 2, button_y))
+            screen.blit(menu_text, text_rect)
+
+            # 处理点击
+            if is_hover and mouse_clicked:
+                if action == "resume":
+                    self.engine.change_state(GameState.BATTLE)
+                elif action == "campaign":
+                    self.engine.change_state(GameState.CAMPAIGN_SELECT)
+                elif action == "menu":
+                    self.engine.change_state(GameState.MENU)
+                elif action == "quit":
+                    self.engine.change_state(GameState.QUIT)
+                # 避免重复点击
+                pygame.time.wait(200)
+
+        # 显示快捷键提示
+        hint = self.fonts['small'].render("F11: 全屏切换", True, (150, 150, 150))
+        screen.blit(hint, (screen.get_width() // 2 - 80, screen.get_height() - 60))
 
     def state_victory(self, screen: pygame.Surface, delta_time: float):
         """胜利状态处理"""
         screen.fill((40, 80, 40))
 
+        # 胜利标题
         text = self.fonts['huge'].render("胜利！", True, (100, 255, 100))
-        text_rect = text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
+        text_rect = text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 - 100))
         screen.blit(text, text_rect)
+
+        # 胜利信息
+        victory_info = self.fonts['normal'].render("恭喜完成本关卡！", True, (200, 255, 200))
+        info_rect = victory_info.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
+        screen.blit(victory_info, info_rect)
+
+        # 菜单选项
+        mouse_pos = pygame.mouse.get_pos()
+        mouse_clicked = pygame.mouse.get_pressed()[0]
+
+        menu_items = [
+            ("下一关", "next"),
+            ("返回主菜单", "menu"),
+        ]
+
+        button_width = 300
+        button_height = 50
+        start_y = screen.get_height() // 2 + 80
+
+        for i, (text, action) in enumerate(menu_items):
+            button_y = start_y + i * 70
+            button_rect = pygame.Rect(
+                screen.get_width() // 2 - button_width // 2,
+                button_y - button_height // 2,
+                button_width,
+                button_height
+            )
+
+            # 检测鼠标悬停
+            is_hover = button_rect.collidepoint(mouse_pos)
+
+            # 绘制按钮
+            if is_hover:
+                pygame.draw.rect(screen, (70, 120, 70), button_rect)
+                pygame.draw.rect(screen, (100, 255, 100), button_rect, 3)
+                color = (255, 255, 150)
+            else:
+                pygame.draw.rect(screen, (40, 80, 40), button_rect)
+                pygame.draw.rect(screen, (80, 160, 80), button_rect, 2)
+                color = (200, 255, 200)
+
+            # 绘制文字
+            button_text = self.fonts['normal'].render(text, True, color)
+            text_rect = button_text.get_rect(center=(screen.get_width() // 2, button_y))
+            screen.blit(button_text, text_rect)
+
+            # 处理点击
+            if is_hover and mouse_clicked:
+                if action == "next":
+                    # TODO: 实现下一关逻辑
+                    logger.info("进入下一关")
+                    self.engine.change_state(GameState.BATTLE)
+                elif action == "menu":
+                    self.engine.change_state(GameState.MENU)
+                pygame.time.wait(200)
+
+        # 底部提示
+        hint = self.fonts['small'].render("ESC: 返回主菜单", True, (150, 200, 150))
+        screen.blit(hint, (screen.get_width() // 2 - 100, screen.get_height() - 60))
 
     def state_defeat(self, screen: pygame.Surface, delta_time: float):
         """失败状态处理"""
         screen.fill((80, 40, 40))
 
+        # 失败标题
         text = self.fonts['huge'].render("失败", True, (255, 100, 100))
-        text_rect = text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
+        text_rect = text.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 - 100))
         screen.blit(text, text_rect)
+
+        # 失败信息
+        defeat_info = self.fonts['normal'].render("再接再厉，再试一次！", True, (255, 180, 180))
+        info_rect = defeat_info.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2))
+        screen.blit(defeat_info, info_rect)
+
+        # 菜单选项
+        mouse_pos = pygame.mouse.get_pos()
+        mouse_clicked = pygame.mouse.get_pressed()[0]
+
+        menu_items = [
+            ("重试本关", "retry"),
+            ("返回主菜单", "menu"),
+        ]
+
+        button_width = 300
+        button_height = 50
+        start_y = screen.get_height() // 2 + 80
+
+        for i, (text, action) in enumerate(menu_items):
+            button_y = start_y + i * 70
+            button_rect = pygame.Rect(
+                screen.get_width() // 2 - button_width // 2,
+                button_y - button_height // 2,
+                button_width,
+                button_height
+            )
+
+            # 检测鼠标悬停
+            is_hover = button_rect.collidepoint(mouse_pos)
+
+            # 绘制按钮
+            if is_hover:
+                pygame.draw.rect(screen, (120, 60, 60), button_rect)
+                pygame.draw.rect(screen, (255, 100, 100), button_rect, 3)
+                color = (255, 255, 150)
+            else:
+                pygame.draw.rect(screen, (80, 40, 40), button_rect)
+                pygame.draw.rect(screen, (160, 80, 80), button_rect, 2)
+                color = (255, 180, 180)
+
+            # 绘制文字
+            button_text = self.fonts['normal'].render(text, True, color)
+            text_rect = button_text.get_rect(center=(screen.get_width() // 2, button_y))
+            screen.blit(button_text, text_rect)
+
+            # 处理点击
+            if is_hover and mouse_clicked:
+                if action == "retry":
+                    logger.info("重试关卡")
+                    self.engine.change_state(GameState.BATTLE)
+                elif action == "menu":
+                    self.engine.change_state(GameState.MENU)
+                pygame.time.wait(200)
+
+        # 底部提示
+        hint = self.fonts['small'].render("ESC: 返回主菜单", True, (200, 150, 150))
+        screen.blit(hint, (screen.get_width() // 2 - 100, screen.get_height() - 60))
 
     def run(self):
         """运行游戏"""

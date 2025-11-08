@@ -154,15 +154,40 @@ class GameEngine:
                 self.running = False
 
             elif event.type == pygame.KEYDOWN:
-                # 全局快捷键
+                # ESC键 - 根据不同状态执行不同操作
                 if event.key == pygame.K_ESCAPE:
                     if self.current_state == GameState.BATTLE:
+                        # 战斗中按ESC -> 暂停
                         self.change_state(GameState.PAUSE)
                     elif self.current_state == GameState.PAUSE:
+                        # 暂停中按ESC -> 继续战斗
                         self.change_state(GameState.BATTLE)
+                    elif self.current_state == GameState.CAMPAIGN_SELECT:
+                        # 战役选择按ESC -> 返回主菜单
+                        self.change_state(GameState.MENU)
+                    elif self.current_state == GameState.LEVEL_SELECT:
+                        # 关卡选择按ESC -> 返回战役选择
+                        self.change_state(GameState.CAMPAIGN_SELECT)
+                    elif self.current_state == GameState.CHARACTER_SELECT:
+                        # 角色选择按ESC -> 返回关卡选择
+                        self.change_state(GameState.LEVEL_SELECT)
+                    elif self.current_state == GameState.SETTINGS:
+                        # 设置界面按ESC -> 返回主菜单
+                        self.change_state(GameState.MENU)
+                    elif self.current_state == GameState.VICTORY or self.current_state == GameState.DEFEAT:
+                        # 胜利/失败界面按ESC -> 返回主菜单
+                        self.change_state(GameState.MENU)
+
+                # F11键 - 切换全屏
+                elif event.key == pygame.K_F11:
+                    self.toggle_fullscreen()
+
+                # Alt+Enter - 切换全屏（备用快捷键）
+                keys = pygame.key.get_pressed()
+                if event.key == pygame.K_RETURN and (keys[pygame.K_LALT] or keys[pygame.K_RALT]):
+                    self.toggle_fullscreen()
 
                 # 管理界面快捷键 (Ctrl+Shift+D)
-                keys = pygame.key.get_pressed()
                 if (keys[pygame.K_LCTRL] or keys[pygame.K_RCTRL]) and \
                    (keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]) and \
                    event.key == pygame.K_d:
