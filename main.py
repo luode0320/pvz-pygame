@@ -232,8 +232,7 @@ class CrossVerseArena:
 
         # 显示统计信息
         stats = [
-            f"FPS: {self.engine.get_fps():.1f}",
-            f"游戏: {len(self.config_loader.games)}"
+            f"FPS: {self.engine.get_fps():.1f}"
         ]
 
         for i, stat in enumerate(stats):
