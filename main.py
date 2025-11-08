@@ -186,6 +186,7 @@ class CrossVerseArena:
         self.engine.register_state_handler(GameState.PAUSE, self.state_pause)
         self.engine.register_state_handler(GameState.VICTORY, self.state_victory)
         self.engine.register_state_handler(GameState.DEFEAT, self.state_defeat)
+        self.engine.register_state_handler(GameState.ADMIN, self.state_admin)
 
     def state_loading(self, screen: pygame.Surface, delta_time: float):
         """加载状态处理"""
@@ -1126,6 +1127,52 @@ class CrossVerseArena:
             logger.error(f"游戏运行错误: {e}", exc_info=True)
         finally:
             self.cleanup()
+
+    def state_admin(self, screen: pygame.Surface, delta_time: float):
+        """管理界面状态处理"""
+        # 在管理界面状态时，显示提示信息
+        bg_color = self.theme_manager.get_background_color("main_menu")
+        screen.fill(bg_color)
+
+        # 显示提示文字
+        title_color = self.theme_manager.get_text_color("title")
+        title = self.fonts['huge'].render("管理界面", True, title_color)
+        title_rect = title.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 - 50))
+        screen.blit(title, title_rect)
+
+        hint_color = self.theme_manager.get_text_color("subtitle")
+        hint = self.fonts['normal'].render("管理界面已在独立窗口中打开", True, hint_color)
+        hint_rect = hint.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 + 20))
+        screen.blit(hint, hint_rect)
+
+        hint2 = self.fonts['small'].render("按 Ctrl+Shift+D 或关闭管理窗口返回游戏", True, hint_color)
+        hint2_rect = hint2.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 + 60))
+        screen.blit(hint2, hint2_rect)
+
+        # 首次进入时启动管理界面（使用线程避免阻塞）
+        if not hasattr(self, '_admin_launched') or not self._admin_launched:
+            self._admin_launched = True
+            self._launch_admin_ui_threaded()
+
+    def _launch_admin_ui_threaded(self):
+        """在独立线程中启动管理界面"""
+        import threading
+
+        def launch_admin():
+            try:
+                from admin.admin_ui import launch_admin_ui
+                launch_admin_ui()
+                # 管理界面关闭后，返回之前的状态
+                self.engine.change_state(self.engine.previous_state or GameState.MENU)
+                self._admin_launched = False
+            except Exception as e:
+                logger.error(f"启动管理界面失败: {e}")
+                self.engine.change_state(self.engine.previous_state or GameState.MENU)
+                self._admin_launched = False
+
+        admin_thread = threading.Thread(target=launch_admin, daemon=True)
+        admin_thread.start()
+        logger.info("管理界面已在独立线程中启动")
 
     def cleanup(self):
         """清理资源"""

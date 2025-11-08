@@ -5,7 +5,7 @@
 [![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://www.python.org/)
 [![Pygame](https://img.shields.io/badge/Pygame-2.0+-green.svg)](https://www.pygame.org/)
 
-> 📖 **[查看游戏玩法说明](游戏玩法说明.md)** | 🎯 **[新手教程指南](游戏玩法说明.md#-新手教程关卡详情)** | 🎮 **立即开始：`python main.py`**
+> 📖 **[查看游戏玩法说明](游戏玩法说明.md)** | 🎮 **立即开始：`python main.py`**
 
 ---
 
