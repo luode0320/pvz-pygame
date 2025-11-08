@@ -120,24 +120,23 @@ ui_theme:
     card:
       # 关卡卡片
       level_completed_bg: [40, 80, 40]     # 已完成背景
-      level_completed_border: [80, 160, 80]# 已完成边框
-      level_completed_text: [100, 255, 100]# 已完成状态文字
+      level_completed_border: [80, 160, 80] # 已完成边框
+      level_completed_text: [100, 255, 100] # 已完成状态文字
       level_unlocked_bg: [60, 70, 90]      # 已解锁背景
-      level_unlocked_hover_bg: [80, 90, 120]# 已解锁悬停背景
-      level_unlocked_border: [100, 120, 160]# 已解锁边框
-      level_unlocked_hover_border: [150, 180, 220]# 已解锁悬停边框
+      level_unlocked_hover_bg: [80, 90, 120] # 已解锁悬停背景
+      level_unlocked_border: [100, 120, 160] # 已解锁边框
+      level_unlocked_hover_border: [150, 180, 220] # 已解锁悬停边框
       level_unlocked_text: [150, 200, 255] # 已解锁状态文字
       level_locked_bg: [40, 40, 40]        # 未解锁背景
       level_locked_border: [80, 80, 80]    # 未解锁边框
       level_locked_text: [150, 150, 150]   # 未解锁状态文字
-
       # 角色卡片
-      character_selected_bg: [100, 150, 255]# 已选中背景
-      character_selected_border: [150, 200, 255]# 已选中边框
+      character_selected_bg: [100, 150, 255] # 已选中背景
+      character_selected_border: [150, 200, 255] # 已选中边框
       character_hover_bg: [70, 90, 120]    # 悬停背景
-      character_hover_border: [150, 180, 220]# 悬停边框
+      character_hover_border: [150, 180, 220] # 悬停边框
       character_normal_bg: [50, 60, 80]    # 正常背景
-      character_normal_border: [100, 120, 150]# 正常边框
+      character_normal_border: [100, 120, 150] # 正常边框
 
     # 游戏内UI颜色
     game_ui:
@@ -166,13 +165,11 @@ ui_theme:
       small: 10
       normal: 20
       large: 40
-
     # 按钮尺寸
     button:
       width: 300
       height: 50
       spacing: 70
-
     # 卡片尺寸
     card:
       level_width: 360
