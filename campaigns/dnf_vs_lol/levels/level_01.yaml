@@ -1,7 +1,8 @@
 # DNF vs LOL - 第一关配置
+# 新手教程：简单易上手的第一关
 
 level_id: "level_01"
-name: "第一关：新手训练"
+name: "新手教程：初次接触"
 map_id: "dnf_vs_lol_level01"
 map_background: "maps/background.png"
 placement_mask: "maps/placement_mask.png"
@@ -18,41 +19,39 @@ lighting_config:
   ambient_light_intensity: 0.7
   directional_light_direction: [-0.5, -1.0, -0.5]
 
-# 波次配置
+# 波次配置（新手友好：少量敌人，节奏缓慢）
 waves:
   - wave_id: "wave_1"
-    time: 5.0  # 5秒后开始
+    time: 10.0  # 10秒后开始第一波（给玩家准备时间）
     enemies:
       - character: "garen"
-        count: 3  # 3个盖伦
-        interval: 1.0  # 间隔1秒
-        health_multiplier: 1.0
+        count: 2  # 只有2个敌人
+        interval: 3.0  # 间隔3秒（给玩家反应时间）
+        health_multiplier: 0.8  # 血量降低20%
         skin_override: "basic"
         model_scale: 1.0
         animation_speed: 1.0
 
   - wave_id: "wave_2"
-    time: 20.0
+    time: 30.0  # 30秒后第二波
     enemies:
       - character: "garen"
-        count: 5
-        interval: 0.8
-        health_multiplier: 1.2
+        count: 3  # 3个敌人
+        interval: 2.5  # 间隔2.5秒
+        health_multiplier: 0.9  # 血量降低10%
         model_scale: 1.0
 
-# Boss配置
-boss:
-  character: "garen"
-  health_multiplier: 3.0
-  skin: "steel_legion_garen"
-  model_scale: 1.3
-  animation_speed: 0.9
-  drop_items: ["gold", "exp"]
-  special_effects:
-    - effect_id: "rage_aura"
-      radius: 150
-      intensity: 1.0
-      duration: -1  # 永久生效
+  - wave_id: "wave_3"
+    time: 50.0  # 50秒后最后一波
+    enemies:
+      - character: "garen"
+        count: 4  # 4个敌人
+        interval: 2.0  # 间隔2秒
+        health_multiplier: 1.0  # 正常血量
+        model_scale: 1.0
+
+# 不配置Boss（新手教程不需要Boss）
+boss: null
 
 # 胜利/失败条件
 victory_conditions:

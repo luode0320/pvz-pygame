@@ -9,6 +9,7 @@ import sys
 import os
 import logging
 import pygame
+from typing import Optional
 
 # 设置标准输出编码为UTF-8（修复Windows控制台乱码）
 if sys.platform == 'win32':
@@ -25,6 +26,7 @@ from core.resource_loader import get_resource_loader
 from core.game_engine import GameEngine, GameState
 from core.entity_manager import get_entity_manager
 from core.performance_monitor import get_performance_monitor
+from core.battle_manager import BattleManager
 
 # 配置日志
 logging.basicConfig(
@@ -74,6 +76,16 @@ class CrossVerseArena:
 
         # 初始化实体管理器
         self.entity_manager = get_entity_manager()
+
+        # 战斗管理器（在进入战斗时初始化）
+        self.battle_manager: Optional[BattleManager] = None
+        self.current_level_config: Optional[dict] = None
+
+        # 选中的角色列表（在角色选择界面选择）
+        self.selected_characters: list = []
+
+        # 鼠标状态（用于防止连点）
+        self.mouse_pressed_last_frame = False
 
         # 注册状态处理器
         self.register_state_handlers()
@@ -152,6 +164,7 @@ class CrossVerseArena:
         self.engine.register_state_handler(GameState.LOADING, self.state_loading)
         self.engine.register_state_handler(GameState.MENU, self.state_menu)
         self.engine.register_state_handler(GameState.CAMPAIGN_SELECT, self.state_campaign_select)
+        self.engine.register_state_handler(GameState.CHARACTER_SELECT, self.state_character_select)
         self.engine.register_state_handler(GameState.BATTLE, self.state_battle)
         self.engine.register_state_handler(GameState.PAUSE, self.state_pause)
         self.engine.register_state_handler(GameState.VICTORY, self.state_victory)
@@ -277,7 +290,18 @@ class CrossVerseArena:
 
                 if pygame.mouse.get_pressed()[0] and is_hover:
                     logger.info(f"选择战役: {campaign_name}")
-                    self.engine.change_state(GameState.BATTLE)
+
+                    # 保存选择的战役和关卡信息
+                    level_id = f"{campaign_id}/level_01"
+                    if level_id in self.config_loader.levels:
+                        self.current_level_config = self.config_loader.levels[level_id].copy()
+                        self.current_level_config['campaign_id'] = campaign_id
+
+                        # 跳转到角色选择界面
+                        self.engine.change_state(GameState.CHARACTER_SELECT)
+                    else:
+                        logger.warning(f"未找到关卡配置: {level_id}")
+
                     pygame.time.wait(200)
 
                 y += 100
@@ -292,28 +316,194 @@ class CrossVerseArena:
                 self.engine.change_state(GameState.MENU)
                 pygame.time.wait(200)
 
+    def state_character_select(self, screen: pygame.Surface, delta_time: float):
+        """角色选择状态处理"""
+        screen.fill((30, 40, 60))
+
+        # 标题
+        title = self.fonts['title'].render("选择角色", True, (255, 200, 50))
+        title_rect = title.get_rect(center=(screen.get_width() // 2, 60))
+        screen.blit(title, title_rect)
+
+        # 提示文字
+        hint = self.fonts['normal'].render("点击角色卡片选择/取消，最多选择6个", True, (200, 200, 200))
+        hint_rect = hint.get_rect(center=(screen.get_width() // 2, 120))
+        screen.blit(hint, hint_rect)
+
+        # 获取所有防守方角色
+        if not self.current_level_config:
+            error_text = self.fonts['normal'].render("错误：未选择关卡", True, (255, 100, 100))
+            screen.blit(error_text, (screen.get_width() // 2 - 100, 300))
+            return
+
+        campaign_id = self.current_level_config.get('campaign_id', '')
+        campaign = self.config_loader.campaigns.get(campaign_id, {})
+        defender_game = campaign.get('defender_game', 'dnf')
+
+        # 筛选防守方角色
+        available_chars = []
+        for char_id, char_config in self.config_loader.characters.items():
+            if char_config.get('type') == 'defender':
+                available_chars.append((char_id, char_config))
+
+        if not available_chars:
+            no_char_text = self.fonts['normal'].render("暂无可用角色", True, (200, 200, 200))
+            screen.blit(no_char_text, (screen.get_width() // 2 - 100, 300))
+            return
+
+        # 绘制角色卡片
+        card_width = 150
+        card_height = 200
+        card_spacing = 20
+        cards_per_row = 4
+        start_x = (screen.get_width() - (cards_per_row * card_width + (cards_per_row - 1) * card_spacing)) // 2
+        start_y = 180
+
+        mouse_pos = pygame.mouse.get_pos()
+        mouse_pressed = pygame.mouse.get_pressed()[0]
+        mouse_just_clicked = mouse_pressed and not self.mouse_pressed_last_frame
+
+        for i, (char_id, char_config) in enumerate(available_chars):
+            row = i // cards_per_row
+            col = i % cards_per_row
+
+            x = start_x + col * (card_width + card_spacing)
+            y = start_y + row * (card_height + card_spacing)
+
+            card_rect = pygame.Rect(x, y, card_width, card_height)
+
+            # 检查是否已选中
+            is_selected = char_id in self.selected_characters
+            is_hover = card_rect.collidepoint(mouse_pos)
+
+            # 绘制卡片背景
+            if is_selected:
+                bg_color = (100, 150, 255)  # 蓝色表示已选中
+                border_color = (150, 200, 255)
+            elif is_hover:
+                bg_color = (70, 90, 120)
+                border_color = (150, 180, 220)
+            else:
+                bg_color = (50, 60, 80)
+                border_color = (100, 120, 150)
+
+            pygame.draw.rect(screen, bg_color, card_rect)
+            pygame.draw.rect(screen, border_color, card_rect, 3)
+
+            # 绘制角色名
+            name = char_config.get('name', char_id)
+            name_text = self.fonts['normal'].render(name, True, (255, 255, 255))
+            name_rect = name_text.get_rect(center=(x + card_width // 2, y + 60))
+            screen.blit(name_text, name_rect)
+
+            # 绘制角色费用
+            cost = char_config.get('cost', 100)
+            cost_text = self.fonts['small'].render(f"费用: {cost}", True, (255, 200, 50))
+            cost_rect = cost_text.get_rect(center=(x + card_width // 2, y + 100))
+            screen.blit(cost_text, cost_rect)
+
+            # 绘制角色属性
+            stats = char_config.get('stats', {})
+            hp_text = self.fonts['small'].render(f"HP: {stats.get('hp', 0)}", True, (100, 255, 100))
+            atk_text = self.fonts['small'].render(f"攻击: {stats.get('attack', 0)}", True, (255, 100, 100))
+            hp_rect = hp_text.get_rect(center=(x + card_width // 2, y + 130))
+            atk_rect = atk_text.get_rect(center=(x + card_width // 2, y + 155))
+            screen.blit(hp_text, hp_rect)
+            screen.blit(atk_text, atk_rect)
+
+            # 处理点击
+            if is_hover and mouse_just_clicked:
+                if is_selected:
+                    # 取消选择
+                    self.selected_characters.remove(char_id)
+                    logger.info(f"取消选择角色: {name}")
+                else:
+                    # 选择角色（最多6个）
+                    if len(self.selected_characters) < 6:
+                        self.selected_characters.append(char_id)
+                        logger.info(f"选择角色: {name}")
+                    else:
+                        logger.warning("最多只能选择6个角色")
+
+        # 更新鼠标状态
+        self.mouse_pressed_last_frame = mouse_pressed
+
+        # 显示已选择数量
+        count_text = self.fonts['normal'].render(
+            f"已选择: {len(self.selected_characters)}/6",
+            True,
+            (255, 255, 100) if len(self.selected_characters) > 0 else (200, 200, 200)
+        )
+        count_rect = count_text.get_rect(center=(screen.get_width() // 2, screen.get_height() - 120))
+        screen.blit(count_text, count_rect)
+
+        # 开始游戏按钮
+        button_width = 200
+        button_height = 50
+        button_x = screen.get_width() // 2 - button_width // 2
+        button_y = screen.get_height() - 80
+        button_rect = pygame.Rect(button_x, button_y, button_width, button_height)
+
+        button_enabled = len(self.selected_characters) > 0
+        is_button_hover = button_rect.collidepoint(mouse_pos)
+
+        if button_enabled:
+            if is_button_hover:
+                button_color = (100, 200, 100)
+                text_color = (255, 255, 255)
+            else:
+                button_color = (70, 150, 70)
+                text_color = (220, 220, 220)
+        else:
+            button_color = (60, 60, 60)
+            text_color = (120, 120, 120)
+
+        pygame.draw.rect(screen, button_color, button_rect)
+        pygame.draw.rect(screen, (150, 150, 150), button_rect, 2)
+
+        button_text = self.fonts['large'].render("开始游戏", True, text_color)
+        button_text_rect = button_text.get_rect(center=(screen.get_width() // 2, button_y + button_height // 2))
+        screen.blit(button_text, button_text_rect)
+
+        # 处理开始游戏按钮点击
+        if is_button_hover and mouse_just_clicked and button_enabled:
+            # 初始化战斗管理器
+            self.battle_manager = BattleManager(self.config_loader, self.current_level_config)
+
+            # 将选中的角色传递给战斗管理器
+            self.battle_manager.selected_characters = self.selected_characters.copy()
+
+            # 初始化卡片槽
+            self.battle_manager._init_card_slots()
+
+            logger.info(f"开始游戏，选择了 {len(self.selected_characters)} 个角色")
+            self.engine.change_state(GameState.BATTLE)
+
+        # 返回按钮
+        back_text = self.fonts['normal'].render("返回 (ESC)", True, (200, 200, 200))
+        back_rect = back_text.get_rect(topleft=(40, 40))
+        screen.blit(back_text, back_rect)
+
+        if back_rect.collidepoint(mouse_pos) and mouse_just_clicked:
+            # 清空选择
+            self.selected_characters.clear()
+            self.engine.change_state(GameState.CAMPAIGN_SELECT)
+
     def state_battle(self, screen: pygame.Surface, delta_time: float):
         """战斗状态处理"""
         screen.fill((40, 60, 40))
 
-        # 更新实体
-        self.entity_manager.update_all(delta_time)
+        # 如果战斗管理器未初始化，返回菜单
+        if self.battle_manager is None:
+            logger.warning("战斗管理器未初始化，返回主菜单")
+            self.engine.change_state(GameState.MENU)
+            return
 
-        # 渲染实体
-        self.entity_manager.render_all(screen)
+        # 更新战斗管理器
+        self.battle_manager.update(delta_time, screen.get_width())
 
-        # 绘制战斗UI
-        # 显示基地血量
-        hp_text = self.fonts['normal'].render("基地 HP: 1000 / 1000", True, (255, 100, 100))
-        screen.blit(hp_text, (20, 20))
-
-        # 显示资源
-        resource_text = self.fonts['normal'].render("金币: 500", True, (255, 200, 50))
-        screen.blit(resource_text, (20, 60))
-
-        # 显示FPS
-        fps_text = self.fonts['small'].render(f"FPS: {self.engine.get_fps():.1f}", True, (200, 200, 200))
-        screen.blit(fps_text, (screen.get_width() - 120, 20))
+        # 渲染战斗场景
+        self.battle_manager.render(screen, self.fonts)
 
         # 绘制菜单按钮（右上角）
         menu_button_rect = pygame.Rect(screen.get_width() - 140, 50, 120, 40)
@@ -335,20 +525,42 @@ class CrossVerseArena:
         pause_text_rect = pause_text.get_rect(center=menu_button_rect.center)
         screen.blit(pause_text, pause_text_rect)
 
-        # 处理点击
-        if is_hover and pygame.mouse.get_pressed()[0]:
+        # 获取当前鼠标状态
+        mouse_pressed = pygame.mouse.get_pressed()[0]
+        mouse_just_clicked = mouse_pressed and not self.mouse_pressed_last_frame
+
+        # 处理点击菜单按钮（只在鼠标刚按下时触发）
+        if is_hover and mouse_just_clicked:
             self.engine.change_state(GameState.PAUSE)
-            pygame.time.wait(200)  # 避免重复点击
+
+        # 处理游戏内点击（卡片和网格）（只在鼠标刚按下时触发）
+        if mouse_just_clicked and not is_hover:
+            mouse_x, mouse_y = pygame.mouse.get_pos()
+            self.battle_manager.handle_click(mouse_x, mouse_y, screen.get_height())
+
+        # 更新鼠标状态
+        self.mouse_pressed_last_frame = mouse_pressed
+
+        # 显示FPS
+        fps_text = self.fonts['small'].render(f"FPS: {self.engine.get_fps():.1f}", True, (200, 200, 200))
+        screen.blit(fps_text, (screen.get_width() - 120, 20))
 
         # 底部游戏提示
-        hint_y = screen.get_height() - 40
+        hint_y = screen.get_height() - 20
         hint_text = self.fonts['small'].render(
-            "提示: ESC 打开菜单 | F11 切换全屏 | 点击卡片放置单位",
+            "提示: 点击卡片后点击网格放置单位 | ESC 打开菜单",
             True,
             (180, 180, 180)
         )
         hint_rect = hint_text.get_rect(center=(screen.get_width() // 2, hint_y))
         screen.blit(hint_text, hint_rect)
+
+        # 检查游戏结束
+        if self.battle_manager.game_over:
+            if self.battle_manager.victory:
+                self.engine.change_state(GameState.VICTORY)
+            else:
+                self.engine.change_state(GameState.DEFEAT)
 
         # 更新性能监控
         if self.performance_monitor:
