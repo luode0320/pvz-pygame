@@ -88,3 +88,30 @@ performance_config:
   boss_fight_particle_limit: 600
   low_end_disable_effects: []
   dynamic_quality_adjust: true
+
+# UI主题配置（可选，覆盖全局UI配置）
+# 用于为特殊关卡定制独特的视觉风格
+ui_theme:
+  # 颜色配置（部分覆盖示例）
+  colors:
+    # 背景颜色（紫红色主题 - 更高难度的视觉提示）
+    background:
+      level_select: [35, 25, 45]          # 关卡选择背景（偏紫色）
+      battle: [50, 35, 45]                # 战斗背景（偏紫红）
+
+    # 文字颜色
+    text:
+      title: [255, 150, 200]              # 标题文字（粉红色）
+      success: [255, 150, 255]            # 成功文字（紫色）
+
+    # 图标颜色（挑战关卡的特殊配色）
+    icon:
+      gold: [255, 180, 100]               # 金币图标（橙色）
+      hp: [255, 100, 150]                 # 血量图标（粉红）
+      wave: [180, 100, 255]               # 波次图标（紫色）
+      reward: [255, 150, 100]             # 奖励图标（橙红）
+
+  # 布局配置（可选）
+  # layout:
+  #   card:
+  #     level_width: 400  # 可以调整卡片大小

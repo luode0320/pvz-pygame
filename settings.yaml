@@ -78,6 +78,111 @@ admin:
       material: [".mat", ".json"]
       shader: [".glsl", ".hlsl"]
 
+# UI主题配置（全局默认值，关卡可覆盖）
+ui_theme:
+  # 颜色配置（RGB格式：[r, g, b]，RGBA格式：[r, g, b, a]）
+  colors:
+    # 页面背景颜色
+    background:
+      main_menu: [20, 20, 40]              # 主菜单背景
+      campaign_select: [30, 30, 50]        # 战役选择背景
+      level_select: [25, 30, 45]           # 关卡选择背景
+      character_select: [30, 40, 60]       # 角色选择背景
+      battle: [40, 60, 40]                 # 战斗背景
+      pause: [0, 0, 0, 180]                # 暂停遮罩（半透明）
+      victory: [40, 80, 40]                # 胜利背景
+      defeat: [80, 40, 40]                 # 失败背景
+
+    # 文字颜色
+    text:
+      title: [255, 200, 50]                # 标题文字（金色）
+      normal: [255, 255, 255]              # 普通文字（白色）
+      subtitle: [200, 200, 200]            # 副标题文字（浅灰）
+      hint: [120, 120, 150]                # 提示文字（深蓝灰）
+      success: [100, 255, 100]             # 成功文字（绿色）
+      warning: [255, 200, 50]              # 警告文字（黄色）
+      error: [255, 100, 100]               # 错误文字（红色）
+      info: [150, 200, 255]                # 信息文字（蓝色）
+
+    # 按钮颜色
+    button:
+      normal_bg: [60, 60, 90]              # 正常状态背景
+      normal_border: [100, 120, 160]       # 正常状态边框
+      normal_text: [220, 220, 220]         # 正常状态文字
+      hover_bg: [80, 80, 120]              # 悬停状态背景
+      hover_border: [150, 180, 220]        # 悬停状态边框
+      hover_text: [255, 255, 100]          # 悬停状态文字
+      disabled_bg: [40, 40, 40]            # 禁用状态背景
+      disabled_border: [80, 80, 80]        # 禁用状态边框
+      disabled_text: [120, 120, 120]       # 禁用状态文字
+
+    # 卡片颜色
+    card:
+      # 关卡卡片
+      level_completed_bg: [40, 80, 40]     # 已完成背景
+      level_completed_border: [80, 160, 80]# 已完成边框
+      level_completed_text: [100, 255, 100]# 已完成状态文字
+      level_unlocked_bg: [60, 70, 90]      # 已解锁背景
+      level_unlocked_hover_bg: [80, 90, 120]# 已解锁悬停背景
+      level_unlocked_border: [100, 120, 160]# 已解锁边框
+      level_unlocked_hover_border: [150, 180, 220]# 已解锁悬停边框
+      level_unlocked_text: [150, 200, 255] # 已解锁状态文字
+      level_locked_bg: [40, 40, 40]        # 未解锁背景
+      level_locked_border: [80, 80, 80]    # 未解锁边框
+      level_locked_text: [150, 150, 150]   # 未解锁状态文字
+
+      # 角色卡片
+      character_selected_bg: [100, 150, 255]# 已选中背景
+      character_selected_border: [150, 200, 255]# 已选中边框
+      character_hover_bg: [70, 90, 120]    # 悬停背景
+      character_hover_border: [150, 180, 220]# 悬停边框
+      character_normal_bg: [50, 60, 80]    # 正常背景
+      character_normal_border: [100, 120, 150]# 正常边框
+
+    # 游戏内UI颜色
+    game_ui:
+      grid_dark: [50, 70, 50]              # 深色网格
+      grid_light: [60, 80, 60]             # 浅色网格
+      grid_border: [80, 100, 80]           # 网格边框
+      hp_bar_bg: [100, 0, 0]               # 血条背景
+      hp_bar_fg: [0, 255, 0]               # 血条前景
+      gold_text: [255, 200, 50]            # 金币文字
+      hp_text: [255, 100, 100]             # 血量文字
+      wave_text: [200, 200, 200]           # 波次文字
+      enemy_text: [255, 150, 150]          # 敌人数量文字
+
+    # 图标颜色（用于emoji或文字图标）
+    icon:
+      gold: [255, 200, 50]                 # 金币图标
+      hp: [255, 100, 100]                  # 血量图标
+      wave: [100, 200, 255]                # 波次图标
+      reward: [255, 200, 100]              # 奖励图标
+      exp: [255, 150, 255]                 # 经验图标
+
+  # 布局配置
+  layout:
+    # 边距和间距
+    padding:
+      small: 10
+      normal: 20
+      large: 40
+
+    # 按钮尺寸
+    button:
+      width: 300
+      height: 50
+      spacing: 70
+
+    # 卡片尺寸
+    card:
+      level_width: 360
+      level_height: 140
+      level_spacing_x: 20
+      level_spacing_y: 20
+      character_width: 150
+      character_height: 200
+      character_spacing: 20
+
 # 音频设置
 audio:
   master_volume: 1.0  # 主音量（0-1）

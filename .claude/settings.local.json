@@ -4,7 +4,8 @@
       "Bash(mkdir:*)",
       "Bash(test -f:*)",
       "Bash(python main.py:*)",
-      "Bash(python:*)"
+      "Bash(python:*)",
+      "Bash(timeout 5 sleep:*)"
     ],
     "deny": [],
     "ask": []
