@@ -320,13 +320,18 @@ class CrossVerseArena:
         """角色选择状态处理"""
         screen.fill((30, 40, 60))
 
+        # 从配置读取角色选择限制
+        char_selection_config = self.settings.get('gameplay', {}).get('character_selection', {})
+        max_characters = char_selection_config.get('max_characters', 6)
+        min_characters = char_selection_config.get('min_characters', 1)
+
         # 标题
         title = self.fonts['title'].render("选择角色", True, (255, 200, 50))
         title_rect = title.get_rect(center=(screen.get_width() // 2, 60))
         screen.blit(title, title_rect)
 
         # 提示文字
-        hint = self.fonts['normal'].render("点击角色卡片选择/取消，最多选择6个", True, (200, 200, 200))
+        hint = self.fonts['normal'].render(f"点击角色卡片选择/取消，最多选择{max_characters}个", True, (200, 200, 200))
         hint_rect = hint.get_rect(center=(screen.get_width() // 2, 120))
         screen.blit(hint, hint_rect)
 
@@ -418,19 +423,19 @@ class CrossVerseArena:
                     self.selected_characters.remove(char_id)
                     logger.info(f"取消选择角色: {name}")
                 else:
-                    # 选择角色（最多6个）
-                    if len(self.selected_characters) < 6:
+                    # 选择角色（从配置读取最大数量）
+                    if len(self.selected_characters) < max_characters:
                         self.selected_characters.append(char_id)
                         logger.info(f"选择角色: {name}")
                     else:
-                        logger.warning("最多只能选择6个角色")
+                        logger.warning(f"最多只能选择{max_characters}个角色")
 
         # 更新鼠标状态
         self.mouse_pressed_last_frame = mouse_pressed
 
         # 显示已选择数量
         count_text = self.fonts['normal'].render(
-            f"已选择: {len(self.selected_characters)}/6",
+            f"已选择: {len(self.selected_characters)}/{max_characters}",
             True,
             (255, 255, 100) if len(self.selected_characters) > 0 else (200, 200, 200)
         )
@@ -444,7 +449,7 @@ class CrossVerseArena:
         button_y = screen.get_height() - 80
         button_rect = pygame.Rect(button_x, button_y, button_width, button_height)
 
-        button_enabled = len(self.selected_characters) > 0
+        button_enabled = len(self.selected_characters) >= min_characters
         is_button_hover = button_rect.collidepoint(mouse_pos)
 
         if button_enabled:
@@ -467,8 +472,8 @@ class CrossVerseArena:
 
         # 处理开始游戏按钮点击
         if is_button_hover and mouse_just_clicked and button_enabled:
-            # 初始化战斗管理器
-            self.battle_manager = BattleManager(self.config_loader, self.current_level_config)
+            # 初始化战斗管理器（传入settings配置）
+            self.battle_manager = BattleManager(self.config_loader, self.current_level_config, self.settings)
 
             # 将选中的角色传递给战斗管理器
             self.battle_manager.selected_characters = self.selected_characters.copy()
@@ -692,9 +697,9 @@ class CrossVerseArena:
                 if action == "next":
                     # TODO: 实现下一关逻辑（暂时重新开始本关）
                     logger.info("进入下一关（暂时重新开始本关）")
-                    # 重新初始化战斗管理器
+                    # 重新初始化战斗管理器（传入settings配置）
                     if self.current_level_config and self.selected_characters:
-                        self.battle_manager = BattleManager(self.config_loader, self.current_level_config)
+                        self.battle_manager = BattleManager(self.config_loader, self.current_level_config, self.settings)
                         self.battle_manager.selected_characters = self.selected_characters.copy()
                         self.battle_manager._init_card_slots()
                     self.engine.change_state(GameState.BATTLE)
@@ -764,9 +769,9 @@ class CrossVerseArena:
             if is_hover and mouse_clicked:
                 if action == "retry":
                     logger.info("重试关卡")
-                    # 重新初始化战斗管理器
+                    # 重新初始化战斗管理器（传入settings配置）
                     if self.current_level_config and self.selected_characters:
-                        self.battle_manager = BattleManager(self.config_loader, self.current_level_config)
+                        self.battle_manager = BattleManager(self.config_loader, self.current_level_config, self.settings)
                         self.battle_manager.selected_characters = self.selected_characters.copy()
                         self.battle_manager._init_card_slots()
                         logger.info("战斗管理器已重新初始化")

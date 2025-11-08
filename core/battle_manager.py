@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 class Defender:
     """防守单位（玩家放置的角色）"""
 
-    def __init__(self, character_config: dict, grid_x: int, grid_y: int):
+    def __init__(self, character_config: dict, grid_x: int, grid_y: int, cell_size: int = 80):
         self.character_id = character_config.get('character_id', 'unknown')
         self.name = character_config.get('name', '未知角色')
         self.config = character_config
@@ -22,6 +22,7 @@ class Defender:
         # 网格位置
         self.grid_x = grid_x
         self.grid_y = grid_y
+        self.cell_size = cell_size  # 保存cell_size用于距离计算
 
         # 属性
         stats = character_config.get('stats', {})
@@ -63,7 +64,7 @@ class Defender:
 
         # 攻击目标
         if self.target and self.attack_cooldown <= 0:
-            distance = abs(self.target.x - self.grid_x * 100)
+            distance = abs(self.target.x - self.grid_x * self.cell_size)
             if distance <= self.attack_range:
                 self.attack_target()
                 self.attack_cooldown = self.attack_interval
@@ -84,7 +85,7 @@ class Defender:
 
         for enemy in enemies:
             if enemy.is_alive() and enemy.lane == self.grid_y:
-                distance = abs(enemy.x - self.grid_x * 100)
+                distance = abs(enemy.x - self.grid_x * self.cell_size)
                 if distance < closest_distance and distance <= self.attack_range:
                     closest = enemy
                     closest_distance = distance
@@ -140,7 +141,9 @@ class Defender:
 class Enemy:
     """敌人单位"""
 
-    def __init__(self, character_config: dict, lane: int, screen_width: int, health_multiplier: float = 1.0):
+    def __init__(self, character_config: dict, lane: int, screen_width: int,
+                 health_multiplier: float = 1.0, attack_interval: float = 2.0,
+                 default_speed: int = 20, block_distance: int = 50):
         self.character_id = character_config.get('character_id', 'unknown')
         self.name = character_config.get('name', '未知敌人')
         self.config = character_config
@@ -154,13 +157,16 @@ class Enemy:
         self.max_hp = int(stats.get('hp', 100) * health_multiplier)
         self.hp = self.max_hp
         self.attack = stats.get('attack', 10)
-        self.speed = stats.get('speed', 20)  # 移动速度
-        if self.speed == 0:  # 如果配置为0，设置默认速度
-            self.speed = 20
+        self.speed = stats.get('speed', default_speed)  # 从配置读取默认速度
+        if self.speed == 0:  # 如果配置为0，使用默认速度
+            self.speed = default_speed
 
-        # 攻击计时
+        # 攻击计时（从配置读取）
         self.attack_cooldown = 0
-        self.attack_interval = 2.0
+        self.attack_interval = attack_interval
+
+        # 阻挡距离（从配置读取）
+        self.block_distance = block_distance
 
         # 状态
         self.blocked_by: Optional[Defender] = None
@@ -176,7 +182,7 @@ class Enemy:
         for defender in defenders:
             if defender.grid_y == self.lane and defender.is_alive():
                 defender_x = grid_start_x + defender.grid_x * cell_size + cell_size // 2
-                if abs(self.x - defender_x) < 50:
+                if abs(self.x - defender_x) < self.block_distance:
                     self.blocked_by = defender
                     break
 
@@ -244,26 +250,41 @@ class BattleManager:
     管理整个战斗流程：卡片、网格、单位、波次、资源
     """
 
-    def __init__(self, config_loader, level_config: dict):
+    def __init__(self, config_loader, level_config: dict, settings: dict):
         self.config_loader = config_loader
         self.level_config = level_config
+        self.settings = settings
 
-        # 战场网格配置
-        self.grid_rows = 5  # 5行
-        self.grid_cols = 9  # 9列
-        self.cell_size = 80
-        self.grid_start_x = 100
-        self.grid_start_y = 150  # 从150开始，为顶部卡片栏留出空间
+        # 从全局设置读取战场网格配置
+        battlefield_config = settings.get('gameplay', {}).get('battlefield', {})
+        self.grid_rows = battlefield_config.get('grid_rows', 5)
+        self.grid_cols = battlefield_config.get('grid_cols', 9)
+        self.cell_size = battlefield_config.get('cell_size', 80)
+        self.grid_start_x = battlefield_config.get('grid_start_x', 100)
+        self.grid_start_y = battlefield_config.get('grid_start_y', 150)
 
-        # 基地位置
+        # 从关卡配置读取基地配置
+        base_config = level_config.get('base', {})
         self.base_x = self.grid_start_x
-        self.base_hp = 1000
-        self.base_max_hp = 1000
+        self.base_hp = base_config.get('initial_hp', 1000)
+        self.base_max_hp = base_config.get('max_hp', 1000)
 
-        # 资源
-        self.gold = 200  # 初始金币
-        self.gold_generation_rate = 25  # 每秒生成金币
+        # 从关卡配置读取经济系统配置
+        economy_config = level_config.get('economy', {})
+        # 如果关卡没有配置，使用全局默认值
+        default_economy = settings.get('gameplay', {}).get('economy', {})
+        self.gold = economy_config.get('initial_gold', default_economy.get('default_initial_gold', 200))
+        self.gold_generation_rate = economy_config.get('gold_generation_rate', default_economy.get('default_gold_generation_rate', 25))
+        self.kill_reward = economy_config.get('kill_reward', default_economy.get('default_kill_reward', 25))
         self.gold_timer = 0
+
+        # 从全局设置读取战斗系统配置
+        battle_system_config = settings.get('gameplay', {}).get('battle_system', {})
+        self.card_cooldown = battle_system_config.get('card_cooldown', 5.0)
+        self.enemy_attack_interval = battle_system_config.get('enemy_attack_interval', 2.0)
+        self.base_damage_multiplier = battle_system_config.get('base_damage_multiplier', 10)
+        self.block_distance = battle_system_config.get('block_distance', 50)
+        self.default_enemy_speed = battle_system_config.get('default_enemy_speed', 20)
 
         # 卡片槽（可用角色）
         self.card_slots: List[dict] = []
@@ -312,7 +333,7 @@ class BattleManager:
                     'cost': char_config.get('cost', 100),
                     'config': char_config,
                     'cooldown': 0,
-                    'cooldown_max': 5.0  # 5秒冷却
+                    'cooldown_max': self.card_cooldown  # 从配置读取
                 })
 
         logger.info(f"加载了 {len(self.card_slots)} 个角色卡片")
@@ -352,13 +373,14 @@ class BattleManager:
             # 检查是否死亡
             if not enemy.is_alive():
                 self.enemies.remove(enemy)
-                self.gold += 25  # 击杀奖励
+                self.gold += self.kill_reward  # 击杀奖励（从配置读取）
 
             # 检查是否到达基地
             elif enemy.reached_base(self.base_x):
-                self.base_hp -= enemy.attack * 10
+                damage = enemy.attack * self.base_damage_multiplier
+                self.base_hp -= damage
                 self.enemies.remove(enemy)
-                logger.info(f"敌人突破！基地受到 {enemy.attack * 10} 伤害")
+                logger.info(f"敌人突破！基地受到 {damage} 伤害")
 
         # 检查胜利/失败
         self._check_game_over()
@@ -384,7 +406,13 @@ class BattleManager:
                     if char_config:
                         for j in range(count):
                             lane = j % self.grid_rows  # 随机分配行
-                            enemy = Enemy(char_config, lane, screen_width, health_mult)
+                            enemy = Enemy(
+                                char_config, lane, screen_width,
+                                health_mult,
+                                self.enemy_attack_interval,
+                                self.default_enemy_speed,
+                                self.block_distance
+                            )
                             self.enemies.append(enemy)
 
                 logger.info(f"生成波次 {i + 1}")
@@ -435,7 +463,7 @@ class BattleManager:
             return False
 
         # 创建防守单位
-        defender = Defender(card['config'], grid_x, grid_y)
+        defender = Defender(card['config'], grid_x, grid_y, self.cell_size)
         self.defenders.append(defender)
         self.grid[grid_y][grid_x] = defender
 

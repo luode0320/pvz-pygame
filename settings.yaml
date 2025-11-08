@@ -90,3 +90,30 @@ gameplay:
   auto_save_interval: 300  # 自动存档间隔（秒）
   difficulty: "normal"  # 默认难度：easy/normal/hard
   tutorial_enabled: true  # 教程启用
+
+  # 角色选择限制
+  character_selection:
+    min_characters: 1  # 最少选择角色数
+    max_characters: 6  # 最多选择角色数
+
+  # 战场网格配置
+  battlefield:
+    grid_rows: 5  # 网格行数
+    grid_cols: 9  # 网格列数
+    cell_size: 80  # 单元格像素大小
+    grid_start_x: 100  # 网格起始X坐标
+    grid_start_y: 150  # 网格起始Y坐标
+
+  # 经济系统默认值
+  economy:
+    default_initial_gold: 200  # 默认初始金币
+    default_gold_generation_rate: 25  # 默认每秒生成金币
+    default_kill_reward: 25  # 默认击杀奖励
+
+  # 战斗系统默认值
+  battle_system:
+    card_cooldown: 5.0  # 卡片冷却时间（秒）
+    enemy_attack_interval: 2.0  # 敌人攻击间隔（秒）
+    base_damage_multiplier: 10  # 敌人到达基地的伤害倍数
+    block_distance: 50  # 阻挡距离（像素）
+    default_enemy_speed: 20  # 默认敌人移动速度

@@ -8,6 +8,17 @@ map_background: "maps/background.png"
 placement_mask: "maps/placement_mask.png"
 path_points: "maps/path_points.json"
 
+# 关卡经济配置
+economy:
+  initial_gold: 200  # 初始金币
+  gold_generation_rate: 25  # 每秒生成金币
+  kill_reward: 25  # 击杀奖励
+
+# 基地配置
+base:
+  initial_hp: 1000  # 基地初始血量
+  max_hp: 1000  # 基地最大血量
+
 # 关卡特效环境
 environment_effects:
   - effect_id: "sunny_day"
