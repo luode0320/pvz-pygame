@@ -8,7 +8,28 @@ map_background: "maps/background.png"
 placement_mask: "maps/placement_mask.png"
 path_points: "maps/path_points.json"
 
-# 关卡经济配置
+# 角色选择限制（可选，覆盖全局默认值）
+# character_selection:
+#   min_characters: 1  # 最少选择角色数
+#   max_characters: 3  # 最多选择角色数（新手教程限制较少）
+
+# 战场网格配置（可选，覆盖全局默认值）
+# battlefield:
+#   grid_rows: 5       # 网格行数
+#   grid_cols: 9       # 网格列数
+#   cell_size: 80      # 单元格像素大小
+#   grid_start_x: 100  # 网格起始X坐标
+#   grid_start_y: 150  # 网格起始Y坐标
+
+# 战斗系统配置（可选，覆盖全局默认值）
+# battle_system:
+#   card_cooldown: 3.0              # 卡片冷却时间（新手教程缩短冷却）
+#   enemy_attack_interval: 2.5      # 敌人攻击间隔
+#   base_damage_multiplier: 5       # 基地伤害倍数（新手教程降低惩罚）
+#   block_distance: 50              # 阻挡距离
+#   default_enemy_speed: 15         # 默认敌人速度（新手教程减慢速度）
+
+# 关卡经济配置（可选，覆盖全局默认值）
 economy:
   initial_gold: 200  # 初始金币
   gold_generation_rate: 25  # 每秒生成金币

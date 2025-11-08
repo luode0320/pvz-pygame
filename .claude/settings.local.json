@@ -3,7 +3,8 @@
     "allow": [
       "Bash(mkdir:*)",
       "Bash(test -f:*)",
-      "Bash(python main.py:*)"
+      "Bash(python main.py:*)",
+      "Bash(python:*)"
     ],
     "deny": [],
     "ask": []

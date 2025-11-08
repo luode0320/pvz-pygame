@@ -219,12 +219,8 @@ class CrossVerseArena:
 
         # 显示统计信息
         stats = [
-            f"游戏IP: {len(self.config_loader.games)}",
-            f"角色: {len(self.config_loader.characters)}",
-            f"皮肤: {len(self.config_loader.skins)}",
-            f"战役: {len(self.config_loader.campaigns)}",
-            f"关卡: {len(self.config_loader.levels)}",
-            f"FPS: {self.engine.get_fps():.1f}"
+            f"FPS: {self.engine.get_fps():.1f}",
+            f"游戏: {len(self.config_loader.games)}"
         ]
 
         for i, stat in enumerate(stats):
@@ -320,10 +316,24 @@ class CrossVerseArena:
         """角色选择状态处理"""
         screen.fill((30, 40, 60))
 
-        # 从配置读取角色选择限制
-        char_selection_config = self.settings.get('gameplay', {}).get('character_selection', {})
-        max_characters = char_selection_config.get('max_characters', 6)
-        min_characters = char_selection_config.get('min_characters', 1)
+        # 三级配置fallback：关卡配置 -> 全局配置 -> 硬编码默认值
+        def get_character_limit(key: str, default: int) -> int:
+            # 优先从关卡配置读取
+            if self.current_level_config:
+                level_char_config = self.current_level_config.get('character_selection', {})
+                if key in level_char_config:
+                    return level_char_config[key]
+
+            # 其次从全局配置读取
+            global_char_config = self.settings.get('gameplay', {}).get('character_selection', {})
+            if key in global_char_config:
+                return global_char_config[key]
+
+            # 使用默认值
+            return default
+
+        max_characters = get_character_limit('max_characters', 6)
+        min_characters = get_character_limit('min_characters', 1)
 
         # 标题
         title = self.fonts['title'].render("选择角色", True, (255, 200, 50))

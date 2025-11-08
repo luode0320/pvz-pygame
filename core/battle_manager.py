@@ -255,36 +255,52 @@ class BattleManager:
         self.level_config = level_config
         self.settings = settings
 
-        # 从全局设置读取战场网格配置
-        battlefield_config = settings.get('gameplay', {}).get('battlefield', {})
-        self.grid_rows = battlefield_config.get('grid_rows', 5)
-        self.grid_cols = battlefield_config.get('grid_cols', 9)
-        self.cell_size = battlefield_config.get('cell_size', 80)
-        self.grid_start_x = battlefield_config.get('grid_start_x', 100)
-        self.grid_start_y = battlefield_config.get('grid_start_y', 150)
+        # 三级配置fallback：关卡配置 -> 全局配置 -> 硬编码默认值
+        def get_config_value(level_key: str, global_section: str, config_key: str, default_value):
+            """
+            三级配置读取
+            1. 优先从关卡配置读取
+            2. 其次从全局配置读取
+            3. 最后使用硬编码默认值
+            """
+            # 尝试从关卡配置读取
+            level_section = level_config.get(level_key, {})
+            if config_key in level_section:
+                return level_section[config_key]
 
-        # 从关卡配置读取基地配置
+            # 尝试从全局配置读取
+            global_config = settings.get('gameplay', {}).get(global_section, {})
+            if config_key in global_config:
+                return global_config[config_key]
+
+            # 使用默认值
+            return default_value
+
+        # 战场网格配置（关卡可覆盖）
+        self.grid_rows = get_config_value('battlefield', 'battlefield', 'grid_rows', 5)
+        self.grid_cols = get_config_value('battlefield', 'battlefield', 'grid_cols', 9)
+        self.cell_size = get_config_value('battlefield', 'battlefield', 'cell_size', 80)
+        self.grid_start_x = get_config_value('battlefield', 'battlefield', 'grid_start_x', 100)
+        self.grid_start_y = get_config_value('battlefield', 'battlefield', 'grid_start_y', 150)
+
+        # 基地配置
         base_config = level_config.get('base', {})
         self.base_x = self.grid_start_x
         self.base_hp = base_config.get('initial_hp', 1000)
         self.base_max_hp = base_config.get('max_hp', 1000)
 
-        # 从关卡配置读取经济系统配置
-        economy_config = level_config.get('economy', {})
-        # 如果关卡没有配置，使用全局默认值
-        default_economy = settings.get('gameplay', {}).get('economy', {})
-        self.gold = economy_config.get('initial_gold', default_economy.get('default_initial_gold', 200))
-        self.gold_generation_rate = economy_config.get('gold_generation_rate', default_economy.get('default_gold_generation_rate', 25))
-        self.kill_reward = economy_config.get('kill_reward', default_economy.get('default_kill_reward', 25))
+        # 经济系统配置（关卡可覆盖）
+        self.gold = get_config_value('economy', 'economy', 'initial_gold', 200)
+        self.gold_generation_rate = get_config_value('economy', 'economy', 'gold_generation_rate', 25)
+        self.kill_reward = get_config_value('economy', 'economy', 'kill_reward', 25)
         self.gold_timer = 0
 
-        # 从全局设置读取战斗系统配置
-        battle_system_config = settings.get('gameplay', {}).get('battle_system', {})
-        self.card_cooldown = battle_system_config.get('card_cooldown', 5.0)
-        self.enemy_attack_interval = battle_system_config.get('enemy_attack_interval', 2.0)
-        self.base_damage_multiplier = battle_system_config.get('base_damage_multiplier', 10)
-        self.block_distance = battle_system_config.get('block_distance', 50)
-        self.default_enemy_speed = battle_system_config.get('default_enemy_speed', 20)
+        # 战斗系统配置（关卡可覆盖）
+        self.card_cooldown = get_config_value('battle_system', 'battle_system', 'card_cooldown', 5.0)
+        self.enemy_attack_interval = get_config_value('battle_system', 'battle_system', 'enemy_attack_interval', 2.0)
+        self.base_damage_multiplier = get_config_value('battle_system', 'battle_system', 'base_damage_multiplier', 10)
+        self.block_distance = get_config_value('battle_system', 'battle_system', 'block_distance', 50)
+        self.default_enemy_speed = get_config_value('battle_system', 'battle_system', 'default_enemy_speed', 20)
 
         # 卡片槽（可用角色）
         self.card_slots: List[dict] = []
