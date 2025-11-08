@@ -1,0 +1,78 @@
+# DNF - 冰晶召唤师皮肤配置
+
+skin_id: "ice_summoner"
+name: "冰晶召唤师"
+character_id: "zhaohuan"
+description: "寒冰之力加持的召唤师，技能特效与模型均带有冰晶质感"
+author: "设计团队"
+version: "1.0"
+
+# 解锁条件
+unlock_conditions:
+  type: "level"  # 解锁类型：level/achievement/purchase
+  value: 10  # 需要等级10
+  price: 1000  # 如果是购买类型，价格
+
+# 属性加成（叠加到基础属性）
+stat_bonus:
+  hp: 50
+  attack: 10
+  attack_speed: 0.1
+  ice_resistance: 0.2
+
+# 特效加成
+effect_bonus:
+  ice_skills:
+    damage_multiplier: 1.2
+    slow_duration: 2.0
+  movement:
+    trail_effect: "assets/effects/ice_trail.json"
+
+# 模型与材质配置
+model_config:
+  override_model: "models/characters/summoner_ice.glb"
+  override_animations:
+    idle: "animations/summoner_ice_idle.glb"
+    attack: "animations/summoner_ice_attack.glb"
+  lod_distances: [350, 700, 1100]
+
+# 材质配置
+material_config:
+  override_material: "materials/characters/summoner_ice.mat"
+  material_parameters:
+    metallic: 0.3
+    roughness: 0.5
+    emission_color: [0.0, 0.5, 1.0]
+    emission_intensity: 0.8
+
+# 专属资源
+assets:
+  sprite: "assets/skins/ice_summoner.png"
+  icon: "assets/skins/ice_summoner_icon.png"
+  sounds:
+    attack: "assets/sounds/ice_attack.wav"
+    skill: "assets/sounds/ice_skill.wav"
+    death: "assets/sounds/ice_death.wav"
+
+# 皮肤专属技能调整
+skill_adjustments:
+  summon_ice_cat:
+    cooldown: -1.0  # 减少冷却1秒
+    effect_bonus:
+      damage: 10
+      slow_potency: 0.2
+
+# 画质适配配置
+graphics_adaptation:
+  high_end:
+    enable_emission: true
+    enable_advanced_particles: true
+    particle_count_multiplier: 1.5
+  mid_end:
+    enable_emission: true
+    enable_advanced_particles: true
+    particle_count_multiplier: 1.0
+  low_end:
+    enable_emission: false
+    enable_advanced_particles: false
+    particle_count_multiplier: 0.5

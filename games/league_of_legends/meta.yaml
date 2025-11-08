@@ -1,0 +1,31 @@
+# LOL（英雄联盟）游戏元信息
+
+name: "英雄联盟"
+type: attacker  # 攻击方
+version: "1.0"
+author: "社区贡献者"
+icon: "assets/icons/lol.png"
+description: "全球最受欢迎的MOBA游戏，拥有众多特色英雄"
+
+# 支持的效果类型
+supported_effect_types:
+  - damage
+  - heal
+  - shield
+  - slow
+  - stun
+  - knockup
+  - silence
+
+# 游戏专属渲染配置
+render_config:
+  shader_pack: "lol_shaders"
+  default_shadow_type: "soft"
+  ambient_light_color: [0.9, 0.9, 1.0]
+  ambient_light_intensity: 0.7
+
+# 游戏专属性能配置
+performance_config:
+  model_lod_distance: [600, 1200, 1800]
+  particle_limit: 400
+  animation_fps: 30

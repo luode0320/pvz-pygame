@@ -1,0 +1,118 @@
+# LOL - 盖伦角色配置
+
+character_id: "garen"
+name: "盖伦"
+type: attacker  # 攻击方
+cost: 150
+description: "德玛西亚之力，拥有强大的近战能力和坦度"
+
+# 基础属性
+stats:
+  hp: 400
+  attack: 30
+  attack_range: 50  # 近战
+  attack_speed: 1.0
+  speed: 50  # 移动速度
+  crit_rate: 0.1
+  crit_damage: 2.0
+  effect_resistance: 0.2
+
+# 技能列表
+skills:
+  - skill_id: "decisive_strike"
+    name: "致命打击"
+    type: buff
+    cooldown: 8.0
+    description: "下次攻击造成额外伤害并沉默目标"
+
+    damage:
+      base_damage: 50
+      damage_type: "physical"
+      crit_chance: 0.2
+
+    hit_feedback:
+      type: "heavy"
+      sound: "assets/sounds/garen_q.wav"
+      vibration_duration: 0.25
+      vibration_strength: 70
+      damage_text_color: [1.0, 0.8, 0.0]
+
+    assets:
+      icon: "assets/skills/garen_q_icon.png"
+      sound_cast: "assets/sounds/garen_q_cast.wav"
+
+  - skill_id: "judgment"
+    name: "审判"
+    type: aoe
+    cooldown: 12.0
+    description: "旋转大剑，对周围敌人造成持续伤害"
+
+    damage:
+      base_damage: 20
+      damage_type: "physical"
+      is_multi_hit: true
+      hit_times: 5
+      interval: 0.4
+
+    area:
+      radius: 80
+      shape: "circle"
+
+    hit_feedback:
+      type: "heavy"
+      sound: "assets/sounds/garen_e.wav"
+      vibration_duration: 0.15
+      vibration_strength: 50
+
+    assets:
+      icon: "assets/skills/garen_e_icon.png"
+      sound_cast: "assets/sounds/garen_e_cast.wav"
+
+# 可用皮肤
+available_skins:
+  - "basic"
+  - "steel_legion_garen"
+
+# 模型配置
+model_config:
+  base_model: "models/characters/garen.glb"
+  lod_levels: 3
+  lod_distances: [400, 800, 1200]
+  default_animation: "idle"
+  animations:
+    idle: "animations/garen_idle.glb"
+    walk: "animations/garen_walk.glb"
+    attack: "animations/garen_attack.glb"
+    hit: "animations/garen_hit.glb"
+    death: "animations/garen_death.glb"
+
+# 资源引用
+assets:
+  basic_sprite: "assets/sprites/garen.png"
+  basic_icon: "assets/icons/garen.png"
+  sound_attack: "assets/sounds/garen_attack.wav"
+  sound_death: "assets/sounds/garen_death.wav"
+
+# AI行为配置
+ai:
+  behavior_tree:
+    - condition: "hp < 0.3"
+      action: "retreat"
+      priority: 1
+    - condition: "distance < 80"
+      action: "use_skill judgment"
+      priority: 2
+    - condition: "distance < 200"
+      action: "move_to_target"
+      priority: 3
+    - condition: "default"
+      action: "use_basic_attack"
+      priority: 4
+
+# 性能优化配置
+performance_config:
+  particle_limit: 60
+  animation_optimization: true
+  lod_auto_switch: true
+  distance_cull: true
+  distance_cull_threshold: 2000

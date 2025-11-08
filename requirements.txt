@@ -1,0 +1,10 @@
+# CrossVerse Arena - Python 依赖包
+
+# 游戏引擎
+pygame>=2.0.0
+
+# 配置文件解析
+PyYAML>=5.4.0
+
+# 系统监控
+psutil>=5.8.0

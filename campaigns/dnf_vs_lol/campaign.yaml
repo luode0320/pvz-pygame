@@ -1,0 +1,34 @@
+# DNF vs LOL 战役配置
+
+campaign_id: "dnf_vs_lol"
+name: "阿拉德 vs 峡谷"
+description: "DNF角色对抗LOL英雄！体验横版格斗与MOBA英雄的跨界碰撞"
+cover_image: "cover.jpg"
+cover_image_3d: "models/covers/dnf_vs_lol.glb"
+defender_game: "dnf"  # 防守方：DNF
+attacker_game: "league_of_legends"  # 攻击方：LOL
+difficulty_levels: ["easy", "normal", "hard"]
+
+# 皮肤解锁配置
+skin_unlocks:
+  - skin_id: "ice_summoner"
+    unlock_condition: "complete_campaign"
+    requirement: "dnf_vs_lol"
+
+# 解锁条件（需要完成其他战役）
+unlock_conditions: []
+
+# 全局光影配置
+global_lighting:
+  ambient_light_color: [0.85, 0.85, 0.85]
+  ambient_light_intensity: 0.6
+  directional_light_color: [1.0, 0.95, 0.8]
+  directional_light_intensity: 1.2
+  shadow_quality: "medium"
+
+# 性能配置
+performance_config:
+  default_device_profile: "mid_end"
+  max_entities: 50
+  max_particles: 800
+  frame_rate_target: 30

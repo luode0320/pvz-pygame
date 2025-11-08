@@ -1,0 +1,129 @@
+# DNF - 召唤师角色配置
+
+character_id: "zhaohuan"
+name: "召唤师"
+type: defender  # 防守方
+cost: 100  # 部署成本
+description: "擅长召唤各种契约生物作战，具备多种控制与持续伤害技能"
+
+# 基础属性
+stats:
+  hp: 300  # 生命值
+  attack: 20  # 攻击力
+  attack_range: 250  # 攻击范围
+  attack_speed: 1.5  # 攻击速度
+  speed: 0  # 移动速度（0表示固定位置）
+  crit_rate: 0.05  # 暴击率
+  crit_damage: 1.5  # 暴击伤害倍数
+  effect_resistance: 0.1  # 效果抵抗率
+
+# 技能列表
+skills:
+  - skill_id: "summon_ice_cat"
+    name: "召唤冰猫"
+    type: summon
+    cooldown: 10.0  # 冷却时间（秒）
+    description: "召唤一只冰猫协助作战，冰猫攻击附带减速效果"
+
+    # 伤害配置
+    damage:
+      base_damage: 30
+      damage_type: "magic"  # 伤害类型：physical/magic/true
+      is_multi_hit: false
+      crit_chance: 0.05
+
+    # 打击反馈配置
+    hit_feedback:
+      type: "light"  # 反馈类型
+      sound: "assets/sounds/summon_attack.wav"
+      vibration_duration: 0.1
+      vibration_strength: 30
+      damage_text_color: [1.0, 1.0, 1.0]
+
+    # 资源引用
+    assets:
+      icon: "assets/skills/ice_trap_icon.png"
+      sound_cast: "assets/sounds/ice_trap_cast.wav"
+      sound_hit: "assets/sounds/ice_trap_hit.wav"
+
+  - skill_id: "ice_trap"
+    name: "冰封陷阱"
+    type: aoe
+    cooldown: 15.0
+    description: "放置一个冰封陷阱，对范围内敌人造成伤害和减速"
+
+    # 伤害配置
+    damage:
+      base_damage: 50
+      damage_type: "magic"
+      is_multi_hit: true
+      hit_times: 3
+      interval: 0.5
+      crit_chance: 0.1
+
+    # 区域效果
+    area:
+      radius: 100
+      shape: "circle"
+
+    # 打击反馈配置
+    hit_feedback:
+      type: "heavy"
+      sound: "assets/sounds/ice_explode.wav"
+      vibration_duration: 0.2
+      vibration_strength: 60
+      damage_text_color: [0.0, 0.75, 1.0]
+      screen_shake: 0.05
+
+    # 资源引用
+    assets:
+      icon: "assets/skills/ice_trap_icon.png"
+      sound_cast: "assets/sounds/ice_trap_cast.wav"
+      sound_hit: "assets/sounds/ice_trap_hit.wav"
+
+# 可用皮肤列表
+available_skins:
+  - "basic"  # 基础皮肤
+  - "ice_summoner"  # 冰晶召唤师
+
+# 模型配置
+model_config:
+  base_model: "models/characters/summoner.glb"
+  lod_levels: 3
+  lod_distances: [300, 600, 1000]
+  default_animation: "idle"
+  animations:
+    idle: "animations/summoner_idle.glb"
+    attack: "animations/summoner_attack.glb"
+    hit: "animations/summoner_hit.glb"
+    death: "animations/summoner_death.glb"
+  collision_box:
+    type: "aabb"
+    size: [50, 100, 50]
+    offset: [0, 50, 0]
+
+# 资源引用
+assets:
+  basic_sprite: "assets/sprites/summoner.png"
+  basic_icon: "assets/icons/summoner.png"
+  sound_attack: "assets/sounds/attack.wav"
+  sound_death: "assets/sounds/death.wav"
+  material: "materials/characters/summoner.mat"
+
+# AI行为配置
+ai:
+  behavior_tree:
+    - condition: "distance < 100"
+      action: "use_skill summon_ice_cat"
+      priority: 1
+    - condition: "distance >= 100"
+      action: "use_basic_attack"
+      priority: 2
+
+# 性能优化配置
+performance_config:
+  particle_limit: 50
+  animation_optimization: true
+  lod_auto_switch: true
+  distance_cull: true
+  distance_cull_threshold: 2000

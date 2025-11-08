@@ -1,0 +1,52 @@
+# 高端设备性能配置
+
+profile_id: "high_end"
+name: "高端设备配置"
+description: "适用于旗舰手机/高性能PC的性能配置，全开画质特效"
+
+# 设备性能要求
+device_requirements:
+  cpu_cores: "8+"
+  ram: "6GB+"
+  gpu: "adreno650+/mali-g78+/gtx1050+"
+
+# 渲染性能配置
+render_config:
+  render_pipeline: "deferred"
+  anti_aliasing: "taa"
+  anti_aliasing_quality: "high"
+  shadow_quality: "high"
+  shadow_resolution: 2048
+  ambient_occlusion: true
+  bloom_enabled: true
+  bloom_intensity: 1.0
+  texture_quality: "high"
+  texture_anisotropy: 8
+  post_processing: ["bloom", "hdr", "color_correction"]
+
+# 模型性能配置
+model_config:
+  lod_levels: 3
+  lod_distance_multiplier: 1.2
+  model_detail: "high"
+  animation_quality: "high"
+  instance_rendering: true
+
+# 粒子性能配置
+particle_config:
+  max_particles: 1000
+  particle_quality: "high"
+  particle_lod: 3
+  advanced_particles: true
+
+# 实体性能配置
+entity_config:
+  max_entities: 80
+  entity_update_rate: 60
+  distance_cull_threshold: 2500
+
+# 资源加载配置
+loading_config:
+  preload_distance: 1500
+  cache_size: "2GB"
+  texture_compression: false

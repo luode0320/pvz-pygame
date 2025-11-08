@@ -1,0 +1,92 @@
+# CrossVerse Arena - 全局设置配置文件
+
+# 游戏基础设置
+language: "zh"  # 语言：zh/en
+resolution: [1280, 720]  # 默认分辨率
+resolution_options:  # 可选分辨率
+  - [960, 540]
+  - [1280, 720]
+  - [1920, 1080]
+fps: 60  # 目标帧率
+fullscreen: false  # 是否默认全屏
+
+# 皮肤系统设置
+skin_system:
+  enabled: true  # 是否启用皮肤系统
+  default_skin: "basic"  # 默认皮肤
+  unlock_animation: true  # 解锁动画
+  preview_enabled: true  # 预览功能
+  preview_type: "3d"  # 预览类型：2d/sprite/3d
+
+# 技能效果系统设置
+effect_system:
+  max_effects_per_entity: 10  # 单个实体最大效果数量
+  effect_duration_scale: 1.0  # 效果持续时间缩放
+  immunity_duration: 5.0  # 免疫持续时间
+  particle_layer_count: 3  # 粒子分层数量
+  max_particles: 500  # 全局最大粒子数量
+
+# 渲染系统设置
+render_system:
+  render_pipeline: "forward"  # 渲染管线：forward/deferred
+  anti_aliasing: "fxaa"  # 抗锯齿：none/fxaa/taa
+  anti_aliasing_quality: "medium"  # 抗锯齿质量：low/medium/high
+  shadow_quality: "medium"  # 阴影质量：none/low/medium/high
+  shadow_resolution: 1024  # 阴影贴图分辨率
+  ambient_occlusion: false  # 环境光遮蔽
+  bloom_enabled: true  # Bloom效果
+  bloom_intensity: 0.8  # Bloom强度
+  texture_quality: "high"  # 纹理质量：low/medium/high
+  texture_anisotropy: 4  # 各向异性过滤等级
+
+# 打击感系统设置
+hit_feedback_system:
+  enabled: true  # 是否启用
+  vibration_intensity: 80  # 振动强度（0-100）
+  screen_shake_intensity: 0.1  # 屏幕抖动强度（0-1）
+  damage_text_duration: 1.5  # 伤害数值显示时长（秒）
+  crit_text_scale: 1.5  # 暴击数值缩放比例
+  hit_sound_volume: 1.0  # 打击音效音量
+
+# 性能监控设置
+performance_system:
+  enabled: true  # 是否启用
+  monitor_interval: 0.5  # 监控采样间隔（秒）
+  fps_warning_threshold: 30  # 帧率警告阈值
+  fps_danger_threshold: 20  # 帧率危险阈值
+  memory_warning_threshold: 0.6  # 内存警告阈值（占比）
+  auto_adjust: true  # 自动性能调整
+  adjust_delay: 3.0  # 性能调整延迟（秒）
+
+# 管理界面设置（仅开发人员）
+admin:
+  enabled: true  # 是否启用
+  password: "admin123"  # 管理密码（实际应使用哈希）
+  shortcut: "ctrl+shift+d"  # 快捷键
+  recycle_bin_path: "admin/recycle_bin"  # 回收站路径
+  log_path: "admin/admin_log.txt"  # 日志路径
+  asset_upload:  # 资源上传设置
+    max_image_size: 2048  # 图片最大尺寸（像素）
+    max_audio_size: 5242880  # 音频最大大小（5MB）
+    max_model_size: 52428800  # 模型最大大小（50MB）
+    max_material_size: 10485760  # 材质最大大小（10MB）
+    allowed_formats:  # 允许的格式
+      image: [".png", ".jpg", ".jpeg"]
+      audio: [".wav", ".ogg", ".mp3"]
+      video: [".mp4", ".avi"]
+      model: [".fbx", ".glb"]
+      material: [".mat", ".json"]
+      shader: [".glsl", ".hlsl"]
+
+# 音频设置
+audio:
+  master_volume: 1.0  # 主音量（0-1）
+  music_volume: 0.7  # 音乐音量（0-1）
+  sfx_volume: 0.8  # 音效音量（0-1）
+  voice_volume: 0.9  # 语音音量（0-1）
+
+# 游戏玩法设置
+gameplay:
+  auto_save_interval: 300  # 自动存档间隔（秒）
+  difficulty: "normal"  # 默认难度：easy/normal/hard
+  tutorial_enabled: true  # 教程启用

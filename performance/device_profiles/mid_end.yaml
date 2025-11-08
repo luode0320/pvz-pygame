@@ -1,0 +1,52 @@
+# 中端设备性能配置
+
+profile_id: "mid_end"
+name: "中端设备配置"
+description: "适用于中端手机/PC的性能配置，平衡画质与性能"
+
+# 设备性能要求
+device_requirements:
+  cpu_cores: "4-8"
+  ram: "4GB-6GB"
+  gpu: "adreno530-650/mali-g72-g78/gtx960-1050"
+
+# 渲染性能配置
+render_config:
+  render_pipeline: "forward"
+  anti_aliasing: "fxaa"
+  anti_aliasing_quality: "medium"
+  shadow_quality: "medium"
+  shadow_resolution: 1024
+  ambient_occlusion: false
+  bloom_enabled: true
+  bloom_intensity: 0.8
+  texture_quality: "medium"
+  texture_anisotropy: 4
+  post_processing: ["bloom", "color_correction"]
+
+# 模型性能配置
+model_config:
+  lod_levels: 3
+  lod_distance_multiplier: 1.0
+  model_detail: "medium"
+  animation_quality: "medium"
+  instance_rendering: true
+
+# 粒子性能配置
+particle_config:
+  max_particles: 500
+  particle_quality: "medium"
+  particle_lod: 2
+  advanced_particles: false
+
+# 实体性能配置
+entity_config:
+  max_entities: 50
+  entity_update_rate: 30
+  distance_cull_threshold: 2000
+
+# 资源加载配置
+loading_config:
+  preload_distance: 1000
+  cache_size: "1GB"
+  texture_compression: true

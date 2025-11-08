@@ -1,0 +1,52 @@
+# 低端设备性能配置
+
+profile_id: "low_end"
+name: "低端设备配置"
+description: "适用于低端手机/PC的性能配置，优先保证流畅度"
+
+# 设备性能要求
+device_requirements:
+  cpu_cores: "2-4"
+  ram: "2GB-4GB"
+  gpu: "adreno505-530/mali-g51-g71/integrated"
+
+# 渲染性能配置
+render_config:
+  render_pipeline: "forward"
+  anti_aliasing: "none"
+  anti_aliasing_quality: "low"
+  shadow_quality: "low"
+  shadow_resolution: 512
+  ambient_occlusion: false
+  bloom_enabled: false
+  bloom_intensity: 0.0
+  texture_quality: "low"
+  texture_anisotropy: 1
+  post_processing: []
+
+# 模型性能配置
+model_config:
+  lod_levels: 2
+  lod_distance_multiplier: 0.8
+  model_detail: "low"
+  animation_quality: "low"
+  instance_rendering: true
+
+# 粒子性能配置
+particle_config:
+  max_particles: 200
+  particle_quality: "low"
+  particle_lod: 1
+  advanced_particles: false
+
+# 实体性能配置
+entity_config:
+  max_entities: 30
+  entity_update_rate: 30
+  distance_cull_threshold: 1500
+
+# 资源加载配置
+loading_config:
+  preload_distance: 500
+  cache_size: "512MB"
+  texture_compression: true
