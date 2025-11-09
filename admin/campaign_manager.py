@@ -578,7 +578,7 @@ class CampaignManager:
 
             # 记录操作日志
             operation = "创建" if is_new else "更新"
-            self.admin_manager.log_operation(f"{operation}战役: {campaign_name} ({campaign_id})")
+            self.admin_manager.log_operation(f"{operation}战役", f"{campaign_name} ({campaign_id})")
 
             messagebox.showinfo("成功", f"战役 '{campaign_name}' 已{operation}成功！")
 

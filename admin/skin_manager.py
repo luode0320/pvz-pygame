@@ -807,7 +807,7 @@ class SkinManager:
 
             # 记录操作日志
             operation = "创建" if is_new else "更新"
-            self.admin_manager.log_operation(f"{operation}皮肤: {skin_name} ({skin_id})")
+            self.admin_manager.log_operation(f"{operation}皮肤", f"{skin_name} ({skin_id})")
 
             messagebox.showinfo("成功", f"皮肤 '{skin_name}' 已{operation}成功！")
 

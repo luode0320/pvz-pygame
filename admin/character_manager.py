@@ -1125,7 +1125,7 @@ class CharacterManager:
 
             # 记录操作日志
             operation = "创建" if is_new else "更新"
-            self.admin_manager.log_operation(f"{operation}角色: {char_name} ({char_id})")
+            self.admin_manager.log_operation(f"{operation}角色", f"{char_name} ({char_id})")
 
             messagebox.showinfo("成功", f"角色 '{char_name}' 已{operation}成功！")
 

@@ -467,13 +467,20 @@ class GameManager:
             # 处理图标（如果选择了新图标）
             icon_path = self.game_icon_var.get().strip()
             icon_relative_path = ""
+
+            # 如果是编辑模式，先获取原有的图标路径
+            if not is_new:
+                icon_relative_path = self.config_loader.games.get(game_id, {}).get("icon", "")
+
+            # 如果选择了新图标，则上传并更新路径
             if icon_path and Path(icon_path).exists():
-                # 复制图标到游戏目录
+                # 复制图标到游戏目录的 assets/icons/ 子目录
                 icon_filename = Path(icon_path).name
-                dest_icon = game_dir / "assets" / icon_filename
-                dest_icon.parent.mkdir(parents=True, exist_ok=True)
+                icons_dir = game_dir / "assets" / "icons"
+                icons_dir.mkdir(parents=True, exist_ok=True)  # 创建 icons 子目录
+                dest_icon = icons_dir / icon_filename
                 shutil.copy2(icon_path, dest_icon)
-                icon_relative_path = f"games/{game_id}/assets/{icon_filename}"
+                icon_relative_path = f"games/{game_id}/assets/icons/{icon_filename}"
                 logger.info(f"图标已复制: {dest_icon}")
 
             # 处理标签
@@ -506,7 +513,7 @@ class GameManager:
 
             # 记录操作日志
             operation = "创建" if is_new else "更新"
-            self.admin_manager.log_operation(f"{operation}游戏IP: {game_name} ({game_id})")
+            self.admin_manager.log_operation(f"{operation}游戏IP", f"{game_name} ({game_id})")
 
             messagebox.showinfo("成功", f"游戏IP '{game_name}' 已{operation}成功！")
 

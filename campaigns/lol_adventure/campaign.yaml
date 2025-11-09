@@ -1,0 +1,31 @@
+# LOL冒险战役配置（未完成）
+
+campaign_id: "lol_adventure"
+name: "英雄联盟冒险"
+description: "待完善：英雄联盟主题冒险战役"
+cover_image: ""
+cover_image_3d: ""
+defender_game: ""  # 待配置：防守方游戏ID
+attacker_game: ""  # 待配置：攻击方游戏ID
+difficulty_levels: ["easy", "normal", "hard"]
+
+# 皮肤解锁配置
+skin_unlocks: []
+
+# 解锁条件
+unlock_conditions: []
+
+# 全局光影配置
+global_lighting:
+  ambient_light_color: [0.85, 0.85, 0.85]
+  ambient_light_intensity: 0.6
+  directional_light_color: [1.0, 0.95, 0.8]
+  directional_light_intensity: 1.2
+  shadow_quality: "medium"
+
+# 性能配置
+performance_config:
+  default_device_profile: "mid_end"
+  max_entities: 50
+  max_particles: 800
+  frame_rate_target: 30

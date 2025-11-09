@@ -780,7 +780,7 @@ class BossManager:
 
             # 记录操作日志
             operation = "创建" if is_new else "更新"
-            self.admin_manager.log_operation(f"{operation}Boss: {boss_name} ({boss_id})")
+            self.admin_manager.log_operation(f"{operation}Boss", f"{boss_name} ({boss_id})")
 
             messagebox.showinfo("成功", f"Boss '{boss_name}' 已{operation}成功！")
 

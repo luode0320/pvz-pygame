@@ -1,0 +1,10 @@
+game_id: wzry
+name: 王者荣耀
+type: moba
+description: 5v5王者峡谷PVP对战，领略英雄竞技的酣畅淋漓！
+author: 开发者
+version: 1.0.0
+icon: games/wzry/assets/icons/WZ.png
+tags: []
+created_at: '2025-11-09 17:30:00'
+updated_at: '2025-11-09 17:30:00'

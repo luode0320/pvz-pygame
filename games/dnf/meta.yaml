@@ -1,30 +1,10 @@
-# DNF（地下城与勇士）游戏元信息
-
-name: "地下城与勇士"
-type: fighting  # 游戏类型：格斗
-version: "1.0"
-author: "社区贡献者"
-icon: "assets/icons/dnf.png"
-description: "经典横版格斗游戏，以爽快打击感著称"
-
-# 支持的效果类型
-supported_effect_types:
-  - damage  # 伤害
-  - heal  # 治疗
-  - slow  # 减速
-  - stun  # 眩晕
-  - bleed  # 流血
-  - burn  # 燃烧
-
-# 游戏专属渲染配置
-render_config:
-  shader_pack: "dnf_shaders"  # 专属着色器包
-  default_shadow_type: "soft"  # 默认阴影类型
-  ambient_light_color: [0.8, 0.8, 0.8]  # 环境光颜色
-  ambient_light_intensity: 0.6  # 环境光强度
-
-# 游戏专属性能配置
-performance_config:
-  model_lod_distance: [500, 1000, 1500]  # LOD切换距离
-  particle_limit: 300  # 最大粒子数量
-  animation_fps: 30  # 骨骼动画播放帧率
+game_id: dnf
+name: 地下城与勇士
+type: fighting
+description: 经典横版格斗游戏，以爽快打击感著称
+author: 社区贡献者
+version: '1.0'
+icon: games/dnf/assets/icons/DNF.png
+tags: []
+created_at: ''
+updated_at: '2025-11-09 17:15:43'
