@@ -325,13 +325,13 @@ class CrossVerseArena:
             screen.blit(shadow_surface, shadow_rect)
 
         # 绘制主标题
-        title = self.fonts['huge'].render("CrossVerse Arena", True, title_color)
+        title = self.fonts['huge'].render("宇宙竞技场", True, title_color)
         title_rect = title.get_rect(center=(screen.get_width() // 2, 150))
         screen.blit(title, title_rect)
 
         # 绘制副标题 - 使用副标题文字颜色
         subtitle_color = self.theme_manager.get_text_color("subtitle")
-        subtitle = self.fonts['normal'].render("宇宙竞技场", True, subtitle_color)
+        subtitle = self.fonts['normal'].render("CrossVerse Arena", True, subtitle_color)
         subtitle_rect = subtitle.get_rect(center=(screen.get_width() // 2, 220))
         screen.blit(subtitle, subtitle_rect)
 
