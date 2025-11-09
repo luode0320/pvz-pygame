@@ -84,7 +84,7 @@ class GameEngine:
         self.last_frame_time = time.time()
 
         # 游戏加速（从配置读取）
-        time_config = settings.get('gameplay', {}).get('time_control', {})
+        time_config = self.config.get('gameplay', {}).get('time_control', {})
         self.available_speeds = time_config.get('available_speeds', [1.0, 1.5, 2.0])
         self.time_scale = time_config.get('default_speed', 1.0)
 
@@ -215,7 +215,7 @@ class GameEngine:
                     self.toggle_fullscreen()
 
                 # 游戏速度切换（从配置读取快捷键）
-                speed_key_name = self.settings.get('controls', {}).get('speed_toggle', 'space')
+                speed_key_name = self.config.get('controls', {}).get('speed_toggle', 'space')
                 speed_key = self._get_pygame_key(speed_key_name)
                 if event.key == speed_key:
                     if self.current_state == GameState.BATTLE:
