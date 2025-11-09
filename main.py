@@ -105,9 +105,13 @@ class CrossVerseArena:
 
         # 设置界面分页
         self.settings_page = 0  # 当前页码（0: 音频/显示, 1: 图形设置）
+        self.settings_initialized = False  # 标记设置页面是否已初始化
 
         # 注册状态处理器
         self.register_state_handlers()
+
+        # 注册事件监听器（用于状态切换时重置标志）
+        self.engine.add_event_listener(self.on_state_change)
 
         # 启动配置自动扫描
         if self.settings.get('admin', {}).get('enabled', True):
@@ -191,6 +195,16 @@ class CrossVerseArena:
         self.engine.register_state_handler(GameState.DEFEAT, self.state_defeat)
         self.engine.register_state_handler(GameState.SETTINGS, self.state_settings)
         self.engine.register_state_handler(GameState.ADMIN, self.state_admin)
+
+    def on_state_change(self, event_type: str, event_data: dict):
+        """处理状态切换事件"""
+        if event_type == 'state_change':
+            previous = event_data.get('previous')
+            current = event_data.get('current')
+
+            # 当离开设置页面时，重置初始化标志
+            if previous == GameState.SETTINGS and current != GameState.SETTINGS:
+                self.settings_initialized = False
 
     def state_loading(self, screen: pygame.Surface, delta_time: float):
         """加载状态处理"""
@@ -1386,9 +1400,10 @@ class CrossVerseArena:
 
     def state_settings(self, screen: pygame.Surface, delta_time: float):
         """设置界面处理（分页模式）"""
-        # 如果是刚进入设置页面，重置页码
-        if self.engine.previous_state != GameState.SETTINGS:
+        # 如果是刚进入设置页面，重置页码（只执行一次）
+        if not self.settings_initialized:
             self.settings_page = 0
+            self.settings_initialized = True
 
         # 使用主题管理器获取背景颜色
         bg_color = self.theme_manager.get_background_color("main_menu")

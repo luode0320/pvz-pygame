@@ -175,7 +175,60 @@ class GameEngine:
             'ctrl': pygame.K_LCTRL,
             'alt': pygame.K_LALT,
         }
+        # 支持单个字母键
+        if len(key_name) == 1 and key_name.isalpha():
+            return getattr(pygame, f'K_{key_name.lower()}', pygame.K_SPACE)
         return key_map.get(key_name.lower(), pygame.K_SPACE)
+
+    def _check_shortcut(self, shortcut_str: str, event, keys) -> bool:
+        """
+        检查快捷键是否被按下
+
+        参数:
+            shortcut_str: 快捷键字符串（如 "ctrl+shift+d"）
+            event: pygame事件
+            keys: 当前按键状态
+
+        返回:
+            是否匹配
+        """
+        if not shortcut_str:
+            return False
+
+        # 解析快捷键字符串
+        parts = [p.strip().lower() for p in shortcut_str.split('+')]
+
+        # 检查修饰键
+        ctrl_required = 'ctrl' in parts
+        shift_required = 'shift' in parts
+        alt_required = 'alt' in parts
+
+        # 获取主键
+        main_key = None
+        for part in parts:
+            if part not in ['ctrl', 'shift', 'alt']:
+                main_key = part
+                break
+
+        if not main_key:
+            return False
+
+        # 检查修饰键状态
+        ctrl_pressed = keys[pygame.K_LCTRL] or keys[pygame.K_RCTRL]
+        shift_pressed = keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]
+        alt_pressed = keys[pygame.K_LALT] or keys[pygame.K_RALT]
+
+        # 修饰键必须完全匹配
+        if ctrl_required != ctrl_pressed:
+            return False
+        if shift_required != shift_pressed:
+            return False
+        if alt_required != alt_pressed:
+            return False
+
+        # 检查主键
+        main_key_code = self._get_pygame_key(main_key)
+        return event.key == main_key_code
 
     def handle_events(self) -> None:
         """
@@ -229,10 +282,10 @@ class GameEngine:
                 if event.key == pygame.K_RETURN and (keys[pygame.K_LALT] or keys[pygame.K_RALT]):
                     self.toggle_fullscreen()
 
-                # 管理界面快捷键 (Ctrl+Shift+D)
-                if (keys[pygame.K_LCTRL] or keys[pygame.K_RCTRL]) and \
-                   (keys[pygame.K_LSHIFT] or keys[pygame.K_RSHIFT]) and \
-                   event.key == pygame.K_d:
+                # 管理界面快捷键（从配置读取）
+                admin_config = self.config.get('admin', {})
+                admin_shortcut = admin_config.get('shortcut', 'ctrl+shift+d')
+                if self._check_shortcut(admin_shortcut, event, keys):
                     if self.current_state != GameState.ADMIN:
                         self.change_state(GameState.ADMIN)
                     else:
