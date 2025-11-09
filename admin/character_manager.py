@@ -112,11 +112,19 @@ class CharacterManager:
         self.page_stats = self._create_stats_page()
         self.notebook.add(self.page_stats, text="属性配置")
 
-        # 页面3: 技能管理
+        # 页面3: 攻击与弹道配置
+        self.page_attack = self._create_attack_page()
+        self.notebook.add(self.page_attack, text="攻击配置")
+
+        # 页面4: 被动特质
+        self.page_traits = self._create_passive_traits_page()
+        self.notebook.add(self.page_traits, text="被动特质")
+
+        # 页面5: 技能管理
         self.page_skills = self._create_skills_page()
         self.notebook.add(self.page_skills, text="技能管理")
 
-        # 页面4: 资源配置
+        # 页面6: 资源配置
         self.page_assets = self._create_assets_page()
         self.notebook.add(self.page_assets, text="资源配置")
 
@@ -294,6 +302,352 @@ class CharacterManager:
             self.stats_vars[key] = var
 
         return page
+
+    def _create_attack_page(self):
+        """创建攻击与弹道配置页面"""
+        page = tk.Frame(self.notebook, bg="white")
+
+        # 创建滚动容器
+        canvas = tk.Canvas(page, bg="white")
+        scrollbar = ttk.Scrollbar(page, orient=tk.VERTICAL, command=canvas.yview)
+        content = tk.Frame(canvas, bg="white")
+
+        content.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+
+        canvas.create_window((0, 0), window=content, anchor=tk.NW)
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True, padx=10, pady=10)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        row = 0
+
+        # === 攻击类型配置 ===
+        tk.Label(
+            content,
+            text="攻击类型配置",
+            font=('Arial', 12, 'bold'),
+            bg="white"
+        ).grid(row=row, column=0, columnspan=3, sticky=tk.W, padx=5, pady=(10, 5))
+        row += 1
+
+        # 攻击类型
+        tk.Label(content, text="攻击类型:", bg="white", anchor=tk.W).grid(
+            row=row, column=0, sticky=tk.W, padx=5, pady=5
+        )
+        self.attack_type_var = tk.StringVar(value="melee")
+        attack_type_frame = tk.Frame(content, bg="white")
+        attack_type_frame.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
+
+        tk.Radiobutton(
+            attack_type_frame,
+            text="近战 (Melee)",
+            variable=self.attack_type_var,
+            value="melee",
+            bg="white",
+            command=self._on_attack_type_change
+        ).pack(side=tk.LEFT, padx=5)
+        tk.Radiobutton(
+            attack_type_frame,
+            text="远程 (Ranged)",
+            variable=self.attack_type_var,
+            value="ranged",
+            bg="white",
+            command=self._on_attack_type_change
+        ).pack(side=tk.LEFT, padx=5)
+        row += 1
+
+        # === 弹道配置区域（仅远程显示）===
+        self.projectile_frame = ttk.LabelFrame(content, text="弹道配置 (仅远程攻击)", padding=10)
+        self.projectile_frame.grid(row=row, column=0, columnspan=3, sticky=tk.W+tk.E, padx=5, pady=10)
+        row += 1
+
+        proj_row = 0
+
+        # 弹道类型
+        tk.Label(self.projectile_frame, text="弹道类型:", anchor=tk.W).grid(
+            row=proj_row, column=0, sticky=tk.W, padx=5, pady=5
+        )
+        self.proj_type_var = tk.StringVar(value="linear")
+        proj_type_combo = ttk.Combobox(
+            self.projectile_frame,
+            textvariable=self.proj_type_var,
+            values=["linear", "arc", "homing", "pierce"],
+            state="readonly",
+            width=20
+        )
+        proj_type_combo.grid(row=proj_row, column=1, sticky=tk.W, padx=5, pady=5)
+        tk.Label(
+            self.projectile_frame,
+            text="(直线/抛物线/追踪/穿透)",
+            font=('Arial', 8),
+            fg="gray"
+        ).grid(row=proj_row, column=2, sticky=tk.W, padx=5, pady=5)
+        proj_row += 1
+
+        # 弹道速度
+        tk.Label(self.projectile_frame, text="弹道速度:", anchor=tk.W).grid(
+            row=proj_row, column=0, sticky=tk.W, padx=5, pady=5
+        )
+        self.proj_speed_var = tk.IntVar(value=400)
+        tk.Spinbox(
+            self.projectile_frame,
+            from_=100,
+            to=1000,
+            increment=50,
+            textvariable=self.proj_speed_var,
+            width=20
+        ).grid(row=proj_row, column=1, sticky=tk.W, padx=5, pady=5)
+        tk.Label(
+            self.projectile_frame,
+            text="(像素/秒)",
+            font=('Arial', 8),
+            fg="gray"
+        ).grid(row=proj_row, column=2, sticky=tk.W, padx=5, pady=5)
+        proj_row += 1
+
+        # 弹道大小
+        tk.Label(self.projectile_frame, text="弹道大小:", anchor=tk.W).grid(
+            row=proj_row, column=0, sticky=tk.W, padx=5, pady=5
+        )
+        self.proj_size_var = tk.IntVar(value=10)
+        tk.Spinbox(
+            self.projectile_frame,
+            from_=5,
+            to=50,
+            textvariable=self.proj_size_var,
+            width=20
+        ).grid(row=proj_row, column=1, sticky=tk.W, padx=5, pady=5)
+        proj_row += 1
+
+        # 弹道颜色
+        tk.Label(self.projectile_frame, text="弹道颜色 (R,G,B):", anchor=tk.W).grid(
+            row=proj_row, column=0, sticky=tk.W, padx=5, pady=5
+        )
+        color_frame = tk.Frame(self.projectile_frame)
+        color_frame.grid(row=proj_row, column=1, sticky=tk.W, padx=5, pady=5)
+
+        self.proj_color_r = tk.IntVar(value=255)
+        self.proj_color_g = tk.IntVar(value=200)
+        self.proj_color_b = tk.IntVar(value=0)
+
+        tk.Spinbox(color_frame, from_=0, to=255, textvariable=self.proj_color_r, width=5).pack(side=tk.LEFT, padx=2)
+        tk.Spinbox(color_frame, from_=0, to=255, textvariable=self.proj_color_g, width=5).pack(side=tk.LEFT, padx=2)
+        tk.Spinbox(color_frame, from_=0, to=255, textvariable=self.proj_color_b, width=5).pack(side=tk.LEFT, padx=2)
+        proj_row += 1
+
+        # 穿透选项
+        tk.Label(self.projectile_frame, text="是否穿透:", anchor=tk.W).grid(
+            row=proj_row, column=0, sticky=tk.W, padx=5, pady=5
+        )
+        self.proj_pierce_var = tk.BooleanVar(value=False)
+        tk.Checkbutton(
+            self.projectile_frame,
+            variable=self.proj_pierce_var,
+            command=self._on_pierce_change
+        ).grid(row=proj_row, column=1, sticky=tk.W, padx=5, pady=5)
+        proj_row += 1
+
+        # 穿透次数
+        self.pierce_count_label = tk.Label(self.projectile_frame, text="穿透次数:", anchor=tk.W)
+        self.pierce_count_label.grid(row=proj_row, column=0, sticky=tk.W, padx=5, pady=5)
+        self.proj_pierce_count_var = tk.IntVar(value=3)
+        self.pierce_count_spinbox = tk.Spinbox(
+            self.projectile_frame,
+            from_=1,
+            to=10,
+            textvariable=self.proj_pierce_count_var,
+            width=20,
+            state=tk.DISABLED
+        )
+        self.pierce_count_spinbox.grid(row=proj_row, column=1, sticky=tk.W, padx=5, pady=5)
+        proj_row += 1
+
+        # 溅射半径
+        tk.Label(self.projectile_frame, text="溅射半径:", anchor=tk.W).grid(
+            row=proj_row, column=0, sticky=tk.W, padx=5, pady=5
+        )
+        self.proj_splash_var = tk.IntVar(value=0)
+        tk.Spinbox(
+            self.projectile_frame,
+            from_=0,
+            to=200,
+            textvariable=self.proj_splash_var,
+            width=20
+        ).grid(row=proj_row, column=1, sticky=tk.W, padx=5, pady=5)
+        tk.Label(
+            self.projectile_frame,
+            text="(0=无溅射)",
+            font=('Arial', 8),
+            fg="gray"
+        ).grid(row=proj_row, column=2, sticky=tk.W, padx=5, pady=5)
+        proj_row += 1
+
+        # 存活时间
+        tk.Label(self.projectile_frame, text="最大存活时间:", anchor=tk.W).grid(
+            row=proj_row, column=0, sticky=tk.W, padx=5, pady=5
+        )
+        self.proj_lifetime_var = tk.DoubleVar(value=3.0)
+        tk.Spinbox(
+            self.projectile_frame,
+            from_=0.5,
+            to=10.0,
+            increment=0.5,
+            textvariable=self.proj_lifetime_var,
+            width=20
+        ).grid(row=proj_row, column=1, sticky=tk.W, padx=5, pady=5)
+        tk.Label(
+            self.projectile_frame,
+            text="(秒)",
+            font=('Arial', 8),
+            fg="gray"
+        ).grid(row=proj_row, column=2, sticky=tk.W, padx=5, pady=5)
+
+        # 初始状态：隐藏弹道配置
+        self._on_attack_type_change()
+
+        return page
+
+    def _create_passive_traits_page(self):
+        """创建被动特质管理页面"""
+        page = tk.Frame(self.notebook, bg="white", padx=10, pady=10)
+
+        # 顶部说明
+        tk.Label(
+            page,
+            text="被动特质管理 - 角色固有的被动能力（不同于技能系统中的被动技能）",
+            font=('Arial', 10),
+            bg="white",
+            fg="gray"
+        ).pack(pady=5)
+
+        # 工具栏
+        toolbar = tk.Frame(page, bg="white")
+        toolbar.pack(fill=tk.X, pady=5)
+
+        tk.Button(toolbar, text="添加特质", command=self._add_passive_trait, width=12).pack(side=tk.LEFT, padx=5)
+        tk.Button(toolbar, text="删除特质", command=self._remove_passive_trait, width=12).pack(side=tk.LEFT, padx=5)
+
+        # 特质列表
+        list_frame = tk.Frame(page, bg="white")
+        list_frame.pack(fill=tk.BOTH, expand=True)
+
+        scrollbar = ttk.Scrollbar(list_frame)
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+
+        self.traits_listbox = tk.Listbox(
+            list_frame,
+            yscrollcommand=scrollbar.set,
+            height=15
+        )
+        self.traits_listbox.pack(fill=tk.BOTH, expand=True)
+        scrollbar.config(command=self.traits_listbox.yview)
+
+        # 双击编辑
+        self.traits_listbox.bind('<Double-Button-1>', self._edit_passive_trait)
+
+        return page
+
+    def _on_attack_type_change(self):
+        """攻击类型改变时的回调"""
+        if self.attack_type_var.get() == "ranged":
+            # 显示弹道配置
+            for child in self.projectile_frame.winfo_children():
+                child.configure(state=tk.NORMAL)
+        else:
+            # 隐藏弹道配置
+            for child in self.projectile_frame.winfo_children():
+                if isinstance(child, (tk.Entry, tk.Spinbox, ttk.Combobox)):
+                    child.configure(state=tk.DISABLED)
+                elif isinstance(child, tk.Checkbutton):
+                    child.configure(state=tk.DISABLED)
+                elif isinstance(child, tk.Frame):
+                    for subchild in child.winfo_children():
+                        if isinstance(subchild, (tk.Entry, tk.Spinbox)):
+                            subchild.configure(state=tk.DISABLED)
+
+    def _on_pierce_change(self):
+        """穿透选项改变时的回调"""
+        if self.proj_pierce_var.get():
+            self.pierce_count_spinbox.configure(state=tk.NORMAL)
+        else:
+            self.pierce_count_spinbox.configure(state=tk.DISABLED)
+
+    def _add_passive_trait(self):
+        """添加被动特质"""
+        # 弹出对话框选择特质类型
+        trait_types = [
+            "hp_regen", "shield_regen", "mana_regen",
+            "lifesteal", "crit_rate", "crit_damage",
+            "evasion", "damage_reduction", "thorns",
+            "bonus_gold", "heal_on_kill", "cooldown_reduction_on_kill",
+            "bonus_attack", "bonus_defense", "bonus_attack_speed",
+            "bonus_move_speed", "bonus_hp", "bonus_attack_range"
+        ]
+
+        dialog = tk.Toplevel(self.parent)
+        dialog.title("添加被动特质")
+        dialog.geometry("400x200")
+        dialog.transient(self.parent)
+        dialog.grab_set()
+
+        tk.Label(dialog, text="特质类型:").grid(row=0, column=0, padx=10, pady=10, sticky=tk.W)
+        trait_type_var = tk.StringVar()
+        trait_combo = ttk.Combobox(
+            dialog,
+            textvariable=trait_type_var,
+            values=trait_types,
+            state="readonly",
+            width=30
+        )
+        trait_combo.grid(row=0, column=1, padx=10, pady=10)
+        trait_combo.current(0)
+
+        tk.Label(dialog, text="数值:").grid(row=1, column=0, padx=10, pady=10, sticky=tk.W)
+        value_var = tk.DoubleVar(value=0.1)
+        tk.Entry(dialog, textvariable=value_var, width=33).grid(row=1, column=1, padx=10, pady=10)
+
+        def on_ok():
+            trait_type = trait_type_var.get()
+            value = value_var.get()
+            self.traits_listbox.insert(tk.END, f"{trait_type}: {value}")
+            dialog.destroy()
+
+        tk.Button(dialog, text="确定", command=on_ok, width=10).grid(row=2, column=0, columnspan=2, pady=10)
+
+    def _remove_passive_trait(self):
+        """删除被动特质"""
+        selection = self.traits_listbox.curselection()
+        if selection:
+            self.traits_listbox.delete(selection[0])
+
+    def _edit_passive_trait(self, event):
+        """编辑被动特质"""
+        selection = self.traits_listbox.curselection()
+        if not selection:
+            return
+
+        current_text = self.traits_listbox.get(selection[0])
+        parts = current_text.split(": ")
+        if len(parts) != 2:
+            return
+
+        trait_type = parts[0]
+        current_value = float(parts[1])
+
+        # 弹出编辑对话框
+        new_value = simpledialog.askfloat(
+            "编辑特质",
+            f"修改 {trait_type} 的数值:",
+            initialvalue=current_value
+        )
+
+        if new_value is not None:
+            self.traits_listbox.delete(selection[0])
+            self.traits_listbox.insert(selection[0], f"{trait_type}: {new_value}")
 
     def _create_skills_page(self):
         """创建技能管理页面"""
@@ -522,6 +876,35 @@ class CharacterManager:
                 skill_name = skill.get("name", skill_id)
                 self.skills_listbox.insert(tk.END, f"{skill_name} ({skill_id})")
 
+            # 填充攻击类型和弹道配置
+            attack_type = char_data.get("attack_type", "melee")
+            self.attack_type_var.set(attack_type)
+
+            projectile = char_data.get("projectile", {})
+            if projectile:
+                self.proj_type_var.set(projectile.get("projectile_type", "linear"))
+                self.proj_speed_var.set(projectile.get("speed", 400))
+                self.proj_size_var.set(projectile.get("size", 10))
+                color = projectile.get("color", [255, 200, 0])
+                self.proj_color_r.set(color[0])
+                self.proj_color_g.set(color[1])
+                self.proj_color_b.set(color[2])
+                self.proj_pierce_var.set(projectile.get("pierce", False))
+                self.proj_pierce_count_var.set(projectile.get("pierce_count", 3))
+                self.proj_splash_var.set(projectile.get("splash_radius", 0))
+                self.proj_lifetime_var.set(projectile.get("lifetime", 3.0))
+
+            self._on_attack_type_change()
+            self._on_pierce_change()
+
+            # 填充被动特质
+            self.traits_listbox.delete(0, tk.END)
+            passive_traits = char_data.get("passive_traits", [])
+            for trait in passive_traits:
+                trait_type = trait.get("type", "unknown")
+                value = trait.get("value", 0)
+                self.traits_listbox.insert(tk.END, f"{trait_type}: {value}")
+
             # 填充资源
             assets = char_data.get("assets", {})
             for key, var in self.assets_vars.items():
@@ -555,6 +938,24 @@ class CharacterManager:
         }
         for key, var in self.stats_vars.items():
             var.set(defaults.get(key, 0))
+
+        # 清空攻击类型和弹道配置
+        self.attack_type_var.set("melee")
+        self.proj_type_var.set("linear")
+        self.proj_speed_var.set(400)
+        self.proj_size_var.set(10)
+        self.proj_color_r.set(255)
+        self.proj_color_g.set(200)
+        self.proj_color_b.set(0)
+        self.proj_pierce_var.set(False)
+        self.proj_pierce_count_var.set(3)
+        self.proj_splash_var.set(0)
+        self.proj_lifetime_var.set(3.0)
+        self._on_attack_type_change()
+        self._on_pierce_change()
+
+        # 清空被动特质列表
+        self.traits_listbox.delete(0, tk.END)
 
         # 清空技能列表
         self.skills_listbox.delete(0, tk.END)
@@ -661,6 +1062,37 @@ class CharacterManager:
                     assets[key] = f"games/{game_id}/characters/{filename}"
                     logger.info(f"资源已复制: {dest_file}")
 
+            # 收集攻击类型和弹道配置
+            attack_type = self.attack_type_var.get()
+            projectile_config = None
+            if attack_type == "ranged":
+                projectile_config = {
+                    "projectile_type": self.proj_type_var.get(),
+                    "speed": self.proj_speed_var.get(),
+                    "size": self.proj_size_var.get(),
+                    "color": [
+                        self.proj_color_r.get(),
+                        self.proj_color_g.get(),
+                        self.proj_color_b.get()
+                    ],
+                    "pierce": self.proj_pierce_var.get(),
+                    "splash_radius": self.proj_splash_var.get(),
+                    "lifetime": self.proj_lifetime_var.get()
+                }
+                # 如果开启穿透，添加穿透次数
+                if self.proj_pierce_var.get():
+                    projectile_config["pierce_count"] = self.proj_pierce_count_var.get()
+
+            # 收集被动特质
+            passive_traits = []
+            for i in range(self.traits_listbox.size()):
+                text = self.traits_listbox.get(i)
+                parts = text.split(": ")
+                if len(parts) == 2:
+                    trait_type = parts[0]
+                    value = float(parts[1])
+                    passive_traits.append({"type": trait_type, "value": value})
+
             # 构建配置数据
             char_config = {
                 "character_id": char_id,
@@ -670,10 +1102,19 @@ class CharacterManager:
                 "cost": self.char_cost_var.get(),
                 "description": self.char_desc_text.get("1.0", tk.END).strip(),
                 "stats": stats,
+                "attack_type": attack_type,
                 "skills": skills,
                 "available_skins": ["basic"],
                 "assets": assets,
             }
+
+            # 仅在远程攻击时添加弹道配置
+            if projectile_config:
+                char_config["projectile"] = projectile_config
+
+            # 仅在有被动特质时添加
+            if passive_traits:
+                char_config["passive_traits"] = passive_traits
 
             # 保存角色配置文件
             char_file = self.root_dir / "games" / game_id / "characters" / f"{char_id}.yaml"
