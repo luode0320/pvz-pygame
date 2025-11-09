@@ -29,6 +29,29 @@ admin:
   log_path: admin/admin_log.txt
   password: admin123
   recycle_bin_path: admin/recycle_bin
+
+  # 管理界面快捷键配置
+  # 格式: "修饰键+修饰键+主键" (用加号连接，不区分大小写)
+  #
+  # 支持的修饰键:
+  #   ctrl    - Ctrl键
+  #   shift   - Shift键
+  #   alt     - Alt键
+  #
+  # 支持的主键:
+  #   字母键: a-z (如 a, b, c 等)
+  #   数字键: 0-9 (如 0, 1, 2 等)
+  #   功能键: f1-f12 (如 f1, f2, f12 等)
+  #   特殊键: space, enter, tab, escape
+  #
+  # 示例:
+  #   "ctrl+shift+d"  - Ctrl+Shift+D (默认)
+  #   "ctrl+alt+a"    - Ctrl+Alt+A
+  #   "alt+0"         - Alt+0
+  #   "ctrl+f12"      - Ctrl+F12
+  #   "shift+space"   - Shift+Space
+  #
+  # 注意: 修饰键必须完全匹配，不能多按或少按
   shortcut: ctrl+shift+d
 audio:
   master_volume: 1.0
