@@ -182,6 +182,49 @@ class CrossVerseArena:
 
         return fonts
 
+    def _format_shortcut_display(self, shortcut: str) -> str:
+        """
+        格式化快捷键用于显示
+
+        参数:
+            shortcut: 快捷键字符串（如 "ctrl+shift+d" 或 "0"）
+
+        返回:
+            格式化后的显示文本（如 "Ctrl+Shift+D" 或 "0"）
+        """
+        if not shortcut or not isinstance(shortcut, str):
+            return "未设置"
+
+        # 分割快捷键
+        parts = shortcut.split('+')
+
+        # 格式化每个部分（首字母大写）
+        formatted_parts = []
+        for part in parts:
+            part = part.strip().lower()
+            # 特殊键名映射
+            key_names = {
+                'ctrl': 'Ctrl',
+                'shift': 'Shift',
+                'alt': 'Alt',
+                'space': 'Space',
+                'enter': 'Enter',
+                'tab': 'Tab',
+                'escape': 'ESC',
+            }
+
+            # 功能键（F1-F12）
+            if part.startswith('f') and len(part) >= 2 and part[1:].isdigit():
+                formatted_parts.append(part.upper())
+            # 特殊键名
+            elif part in key_names:
+                formatted_parts.append(key_names[part])
+            # 普通键（字母、数字等）
+            else:
+                formatted_parts.append(part.upper())
+
+        return '+'.join(formatted_parts)
+
     def register_state_handlers(self):
         """注册游戏状态处理器"""
         self.engine.register_state_handler(GameState.LOADING, self.state_loading)
@@ -380,10 +423,16 @@ class CrossVerseArena:
 
         # 底部提示信息
         info_color = self.theme_manager.get_text_color("info")
+
+        # 从配置读取管理界面快捷键
+        admin_config = self.settings.get('admin', {})
+        admin_shortcut = admin_config.get('shortcut', 'ctrl+shift+d')
+        admin_shortcut_display = self._format_shortcut_display(admin_shortcut)
+
         tips = [
             "F11 或 Alt+Enter: 切换全屏",
             "ESC: 返回上一级 / 暂停游戏",
-            "Ctrl+Shift+D: 打开管理界面"
+            f"{admin_shortcut_display}: 打开管理界面"
         ]
 
         for i, tip_text in enumerate(tips):
@@ -1794,7 +1843,12 @@ class CrossVerseArena:
         hint_rect = hint.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 + 20))
         screen.blit(hint, hint_rect)
 
-        hint2 = self.fonts['small'].render("按 Ctrl+Shift+D 或关闭管理窗口返回游戏", True, hint_color)
+        # 从配置读取管理界面快捷键
+        admin_config = self.settings.get('admin', {})
+        admin_shortcut = admin_config.get('shortcut', 'ctrl+shift+d')
+        admin_shortcut_display = self._format_shortcut_display(admin_shortcut)
+
+        hint2 = self.fonts['small'].render(f"按 {admin_shortcut_display} 或关闭管理窗口返回游戏", True, hint_color)
         hint2_rect = hint2.get_rect(center=(screen.get_width() // 2, screen.get_height() // 2 + 60))
         screen.blit(hint2, hint2_rect)
 

@@ -52,7 +52,7 @@ admin:
   #   "shift+space"   - Shift+Space
   #
   # 注意: 修饰键必须完全匹配，不能多按或少按
-  shortcut: ctrl+shift+d
+  shortcut: "ctrl+a"
 audio:
   master_volume: 1.0
   music_volume: 0.62
