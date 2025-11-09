@@ -454,6 +454,15 @@ class ConfigLoader:
         logger.info("开始扫描配置目录...")
         start_time = time.time()
 
+        # 清空所有配置字典（确保删除的配置不再显示）
+        self.games = {}
+        self.characters = {}
+        self.bosses = {}
+        self.skins = {}
+        self.levels = {}
+        self.campaigns = {}
+        self.performance_configs = {}
+
         # 加载全局设置
         self.load_settings()
 

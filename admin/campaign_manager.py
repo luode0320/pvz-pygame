@@ -376,7 +376,7 @@ class CampaignManager:
             # 删除战役目录
             campaign_dir = self.root_dir / "campaigns" / campaign_id
             if campaign_dir.exists():
-                self.admin_manager.delete_config(str(campaign_dir))
+                self.admin_manager.delete_config(str(campaign_dir), "战役")
                 logger.info(f"战役已删除: {campaign_id}")
                 messagebox.showinfo("成功", f"战役 '{campaign_name}' 已删除并移动到回收站")
 

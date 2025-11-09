@@ -10,7 +10,9 @@ from pathlib import Path
 import shutil
 import datetime
 from typing import List, Dict
-from logger_config import logger
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class RecycleLogManager:
@@ -164,53 +166,69 @@ class RecycleLogManager:
         total_size = 0
         file_count = 0
 
-        for item_path in self.recycle_bin_path.iterdir():
-            if item_path.is_file():
-                try:
-                    stat = item_path.stat()
-                    size = stat.st_size
-                    total_size += size
+        # 遍历类型子目录（游戏IP/, 战役/, Boss/, 角色/, 皮肤/）
+        for type_dir in self.recycle_bin_path.iterdir():
+            if type_dir.is_dir():
+                config_type = type_dir.name  # 获取配置类型（游戏IP, 战役等）
 
-                    # 删除时间
-                    mtime = datetime.datetime.fromtimestamp(stat.st_mtime)
+                # 遍历该类型下的所有配置
+                for item_path in type_dir.iterdir():
+                    try:
+                        # 计算大小（递归计算目录大小）
+                        if item_path.is_dir():
+                            size = self._get_dir_size(item_path)
+                        else:
+                            size = item_path.stat().st_size
 
-                    # 文件类型
-                    if item_path.suffix:
-                        file_type = item_path.suffix.upper()[1:]
-                    else:
-                        file_type = "文件"
+                        total_size += size
 
-                    self.recycle_tree.insert("", "end", values=(
-                        item_path.name,
-                        file_type,
-                        mtime.strftime("%Y-%m-%d %H:%M:%S"),
-                        self._format_size(size)
-                    ))
+                        # 删除时间
+                        mtime = datetime.datetime.fromtimestamp(item_path.stat().st_mtime)
 
-                    file_count += 1
+                        self.recycle_tree.insert("", "end", values=(
+                            item_path.name,
+                            config_type,
+                            mtime.strftime("%Y-%m-%d %H:%M:%S"),
+                            self._format_size(size)
+                        ))
 
-                except Exception as e:
-                    logger.error(f"读取回收站文件失败 {item_path}: {e}")
+                        file_count += 1
+
+                    except Exception as e:
+                        logger.error(f"读取回收站项失败 {item_path}: {e}")
 
         # 更新统计
-        stats_text = f"文件数量: {file_count}  |  总大小: {self._format_size(total_size)}"
+        stats_text = f"项目数量: {file_count}  |  总大小: {self._format_size(total_size)}"
         self.recycle_stats_label.config(text=stats_text)
+
+    def _get_dir_size(self, path: Path) -> int:
+        """递归计算目录大小"""
+        total_size = 0
+        try:
+            for item in path.rglob('*'):
+                if item.is_file():
+                    total_size += item.stat().st_size
+        except Exception as e:
+            logger.error(f"计算目录大小失败 {path}: {e}")
+        return total_size
 
     def _restore_item(self):
         """恢复选中项"""
         selection = self.recycle_tree.selection()
         if not selection:
-            messagebox.showwarning("警告", "请先选择要恢复的文件")
+            messagebox.showwarning("警告", "请先选择要恢复的项目")
             return
 
         item = selection[0]
         values = self.recycle_tree.item(item, "values")
-        file_name = values[0]
+        item_name = values[0]
+        config_type = values[1]
 
-        file_path = self.recycle_bin_path / file_name
+        # 构建完整路径（包含类型子目录）
+        item_path = self.recycle_bin_path / config_type / item_name
 
-        if not file_path.exists():
-            messagebox.showerror("错误", "文件不存在")
+        if not item_path.exists():
+            messagebox.showerror("错误", "项目不存在")
             return
 
         # 让用户选择恢复位置
@@ -218,65 +236,78 @@ class RecycleLogManager:
         if not dest_dir:
             return
 
-        dest_path = Path(dest_dir) / file_name
+        dest_path = Path(dest_dir) / item_name
 
         # 检查重名
         if dest_path.exists():
-            if not messagebox.askyesno("确认", f"目标位置已有同名文件:\n{file_name}\n是否覆盖？"):
+            if not messagebox.askyesno("确认", f"目标位置已有同名项目:\n{item_name}\n是否覆盖？"):
                 return
 
         try:
-            shutil.move(str(file_path), str(dest_path))
-            logger.info(f"恢复文件: {file_name} -> {dest_path}")
-            messagebox.showinfo("成功", f"文件已恢复到:\n{dest_path}")
+            shutil.move(str(item_path), str(dest_path))
+            logger.info(f"恢复配置: {item_name} ({config_type}) -> {dest_path}")
+            messagebox.showinfo("成功", f"项目已恢复到:\n{dest_path}")
 
             self._load_recycle_bin()
 
         except Exception as e:
-            logger.error(f"恢复文件失败: {e}")
-            messagebox.showerror("错误", f"恢复文件失败:\n{e}")
+            logger.error(f"恢复配置失败: {e}")
+            messagebox.showerror("错误", f"恢复配置失败:\n{e}")
 
     def _permanently_delete(self):
         """永久删除选中项"""
         selection = self.recycle_tree.selection()
         if not selection:
-            messagebox.showwarning("警告", "请先选择要删除的文件")
+            messagebox.showwarning("警告", "请先选择要删除的项目")
             return
 
         item = selection[0]
         values = self.recycle_tree.item(item, "values")
-        file_name = values[0]
+        item_name = values[0]
+        config_type = values[1]
 
-        if not messagebox.askyesno("确认永久删除", f"确定要永久删除吗？\n{file_name}\n此操作无法撤销！"):
+        if not messagebox.askyesno("确认永久删除", f"确定要永久删除吗？\n{item_name}\n此操作无法撤销！"):
             return
 
-        file_path = self.recycle_bin_path / file_name
+        # 构建完整路径（包含类型子目录）
+        item_path = self.recycle_bin_path / config_type / item_name
 
         try:
-            file_path.unlink()
-            logger.info(f"永久删除文件: {file_name}")
-            messagebox.showinfo("成功", "文件已永久删除")
+            # 删除文件或目录
+            if item_path.is_dir():
+                shutil.rmtree(item_path)
+            else:
+                item_path.unlink()
+
+            logger.info(f"永久删除配置: {item_name} ({config_type})")
+            messagebox.showinfo("成功", "项目已永久删除")
 
             self._load_recycle_bin()
 
         except Exception as e:
-            logger.error(f"永久删除文件失败: {e}")
-            messagebox.showerror("错误", f"永久删除文件失败:\n{e}")
+            logger.error(f"永久删除配置失败: {e}")
+            messagebox.showerror("错误", f"永久删除配置失败:\n{e}")
 
     def _empty_recycle_bin(self):
         """清空回收站"""
-        if not messagebox.askyesno("确认清空", "确定要清空回收站吗？\n所有文件将被永久删除，无法恢复！"):
+        if not messagebox.askyesno("确认清空", "确定要清空回收站吗？\n所有项目将被永久删除，无法恢复！"):
             return
 
         try:
             count = 0
-            for item_path in self.recycle_bin_path.iterdir():
-                if item_path.is_file():
-                    item_path.unlink()
-                    count += 1
+            # 遍历类型子目录
+            for type_dir in self.recycle_bin_path.iterdir():
+                if type_dir.is_dir():
+                    # 删除该类型下的所有配置
+                    for item_path in type_dir.iterdir():
+                        if item_path.is_dir():
+                            shutil.rmtree(item_path)
+                        else:
+                            item_path.unlink()
+                        count += 1
 
-            logger.info(f"清空回收站，删除 {count} 个文件")
-            messagebox.showinfo("成功", f"已清空回收站，删除 {count} 个文件")
+            logger.info(f"清空回收站，删除 {count} 个项目")
+            messagebox.showinfo("成功", f"已清空回收站，删除 {count} 个项目")
 
             self._load_recycle_bin()
 

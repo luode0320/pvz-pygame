@@ -363,7 +363,7 @@ class GameManager:
             # 删除游戏目录
             game_dir = self.root_dir / "games" / game_id
             if game_dir.exists():
-                self.admin_manager.delete_config(str(game_dir))
+                self.admin_manager.delete_config(str(game_dir), "游戏IP")
                 logger.info(f"游戏IP已删除: {game_id}")
                 messagebox.showinfo("成功", f"游戏IP '{game_name}' 已删除并移动到回收站")
 

@@ -570,12 +570,14 @@ class ConfigBrowser:
             return
 
         try:
-            # 获取配置路径
-            path = self.tree.item(item, "values")[2]
+            # 获取配置路径和类型
+            values = self.tree.item(item, "values")
+            config_type = values[0]  # 配置类型
+            path = values[2]  # 配置路径
             config_path = self.config_loader.root_dir / path
 
             # 删除配置（移动到回收站）
-            self.admin_manager.delete_config(str(config_path))
+            self.admin_manager.delete_config(str(config_path), config_type)
 
             # 刷新树
             self.refresh()

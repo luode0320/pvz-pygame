@@ -535,7 +535,7 @@ class BossManager:
             # 删除Boss文件
             boss_file = self.root_dir / "games" / game_id / "bosses" / f"{boss_id}.yaml"
             if boss_file.exists():
-                self.admin_manager.delete_config(str(boss_file))
+                self.admin_manager.delete_config(str(boss_file), "Boss")
                 logger.info(f"Boss已删除: {boss_id}")
                 messagebox.showinfo("成功", f"Boss '{boss_name}' 已删除并移动到回收站")
 

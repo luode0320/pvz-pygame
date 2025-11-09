@@ -552,7 +552,7 @@ class SkinManager:
             # 删除皮肤文件
             skin_file = self.root_dir / "games" / game_id / "skins" / f"{skin_id}.yaml"
             if skin_file.exists():
-                self.admin_manager.delete_config(str(skin_file))
+                self.admin_manager.delete_config(str(skin_file), "皮肤")
                 logger.info(f"皮肤已删除: {skin_id}")
                 messagebox.showinfo("成功", f"皮肤 '{skin_name}' 已删除并移动到回收站")
 

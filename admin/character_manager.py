@@ -826,7 +826,7 @@ class CharacterManager:
             # 删除角色文件
             char_file = self.root_dir / "games" / game_id / "characters" / f"{char_id}.yaml"
             if char_file.exists():
-                self.admin_manager.delete_config(str(char_file))
+                self.admin_manager.delete_config(str(char_file), "角色")
                 logger.info(f"角色已删除: {char_id}")
                 messagebox.showinfo("成功", f"角色 '{char_name}' 已删除并移动到回收站")
 
