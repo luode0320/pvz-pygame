@@ -178,6 +178,12 @@ class GameEngine:
         # 支持单个字母键
         if len(key_name) == 1 and key_name.isalpha():
             return getattr(pygame, f'K_{key_name.lower()}', pygame.K_SPACE)
+        # 支持数字键 0-9
+        if len(key_name) == 1 and key_name.isdigit():
+            return getattr(pygame, f'K_{key_name}', pygame.K_SPACE)
+        # 支持功能键 f1-f12
+        if key_name.lower().startswith('f') and key_name[1:].isdigit():
+            return getattr(pygame, f'K_{key_name.lower()}', pygame.K_SPACE)
         return key_map.get(key_name.lower(), pygame.K_SPACE)
 
     def _check_shortcut(self, shortcut_str: str, event, keys) -> bool:
