@@ -17,10 +17,11 @@ logger = logging.getLogger(__name__)
 class Defender:
     """防守单位（玩家放置的角色）"""
 
-    def __init__(self, character_config: dict, grid_x: int, grid_y: int, cell_size: int = 80, skill_manager: Optional[SkillManager] = None):
+    def __init__(self, character_config: dict, grid_x: int, grid_y: int, cell_size: int = 80, skill_manager: Optional[SkillManager] = None, battle_manager = None):
         self.character_id = character_config.get('character_id', 'unknown')
         self.name = character_config.get('name', '未知角色')
         self.config = character_config
+        self.battle_manager = battle_manager  # 保存战斗管理器引用
 
         # 网格位置
         self.grid_x = grid_x
@@ -180,7 +181,7 @@ class Defender:
                 self.target.take_damage(self.attack)
                 logger.debug(f"{self.name} 攻击 {self.target.name}，造成 {self.attack} 伤害")
 
-    def take_damage(self, damage: int):
+    def take_damage(self, damage: int, is_crit: bool = False):
         """受到伤害"""
         # 无敌状态免疫所有伤害
         if getattr(self, 'is_invulnerable', False):
@@ -193,6 +194,23 @@ class Defender:
         self.hp -= damage
         if self.hp < 0:
             self.hp = 0
+
+        # 显示伤害数字和音效
+        if self.battle_manager and hasattr(self.battle_manager, 'hit_feedback'):
+            # 获取屏幕坐标
+            x, y = self.get_screen_pos(
+                self.battle_manager.grid_start_x,
+                self.battle_manager.grid_start_y,
+                self.battle_manager.cell_size
+            )
+
+            # 显示伤害数字
+            self.battle_manager.hit_feedback.show_damage(x, y, damage, is_crit)
+
+            # 播放受击音效
+            if hasattr(self.battle_manager, 'sound_system'):
+                from core.sound_system import SoundPresets
+                self.battle_manager.sound_system.play_sound(SoundPresets.ATTACK_HIT, volume=0.5)
 
     def is_alive(self) -> bool:
         return self.hp > 0
@@ -233,10 +251,11 @@ class Enemy:
 
     def __init__(self, character_config: dict, lane: int, screen_width: int,
                  health_multiplier: float = 1.0, attack_interval: float = 2.0,
-                 default_speed: int = 20, block_distance: int = 50, skill_manager: Optional[SkillManager] = None):
+                 default_speed: int = 20, block_distance: int = 50, skill_manager: Optional[SkillManager] = None, battle_manager = None):
         self.character_id = character_config.get('character_id', 'unknown')
         self.name = character_config.get('name', '未知敌人')
         self.config = character_config
+        self.battle_manager = battle_manager  # 保存战斗管理器引用
 
         # 位置（从右边进入）
         self.lane = lane
@@ -356,7 +375,7 @@ class Enemy:
                 # 正常前进（除非被定身）
                 self.x -= self.speed * delta_time
 
-    def take_damage(self, damage: int):
+    def take_damage(self, damage: int, is_crit: bool = False):
         """受到伤害"""
         # 无敌状态免疫所有伤害
         if getattr(self, 'is_invulnerable', False):
@@ -369,6 +388,26 @@ class Enemy:
         self.hp -= damage
         if self.hp < 0:
             self.hp = 0
+
+        # 显示伤害数字和音效
+        if self.battle_manager and hasattr(self.battle_manager, 'hit_feedback'):
+            # 获取Y坐标（Enemy直接有x, y属性）
+            y_pos = getattr(self, 'y', 0)
+            if y_pos == 0:
+                # 如果没有y坐标，根据lane计算
+                if hasattr(self.battle_manager, 'grid_start_y') and hasattr(self.battle_manager, 'cell_size'):
+                    y_pos = self.battle_manager.grid_start_y + self.lane * self.battle_manager.cell_size + self.battle_manager.cell_size // 2
+
+            # 显示伤害数字
+            self.battle_manager.hit_feedback.show_damage(self.x, y_pos, damage, is_crit)
+
+            # 创建命中粒子效果
+            self.battle_manager.hit_feedback.create_hit_particles(self.x, y_pos, count=5)
+
+            # 播放受击音效
+            if hasattr(self.battle_manager, 'sound_system'):
+                from core.sound_system import SoundPresets
+                self.battle_manager.sound_system.play_sound(SoundPresets.ATTACK_HIT, volume=0.6)
 
     def is_alive(self) -> bool:
         return self.hp > 0
@@ -431,6 +470,18 @@ class BattleManager:
 
         # 被动特质管理器
         self.passive_traits_manager = PassiveTraitsManager()
+
+        # Boss管理器
+        from core.boss_system import BossManager
+        self.boss_manager = BossManager()
+
+        # 音效系统
+        from core.sound_system import get_sound_system
+        self.sound_system = get_sound_system(settings)
+
+        # 打击感反馈系统
+        from core.hit_feedback_system import get_hit_feedback_system
+        self.hit_feedback = get_hit_feedback_system()
 
         # 三级配置fallback：关卡配置 -> 全局配置 -> 硬编码默认值
         def get_config_value(level_key: str, global_section: str, config_key: str, default_value):
@@ -555,10 +606,24 @@ class BattleManager:
         # 更新弹道
         self.projectile_manager.update(delta_time)
 
+        # 更新Boss系统
+        self.boss_manager.update(delta_time)
+
+        # 更新打击感反馈
+        self.hit_feedback.update(delta_time)
+
         # 更新防守单位
         for defender in self.defenders[:]:
             defender.update(delta_time, self.enemies, self.skill_manager, self, self.projectile_manager)
             if not defender.is_alive():
+                # 播放死亡音效和特效
+                from core.sound_system import SoundPresets
+                self.sound_system.play_sound(SoundPresets.UNIT_DEATH, volume=0.6)
+
+                # 获取屏幕坐标
+                x, y = defender.get_screen_pos(self.grid_start_x, self.grid_start_y, self.cell_size)
+                self.hit_feedback.create_explosion_particles(x, y, count=15)
+
                 self.defenders.remove(defender)
                 self.grid[defender.grid_y][defender.grid_x] = None
 
@@ -568,6 +633,21 @@ class BattleManager:
 
             # 检查是否死亡
             if not enemy.is_alive():
+                # 播放死亡音效和特效
+                from core.sound_system import SoundPresets
+
+                # 判断是否是Boss
+                if getattr(enemy, 'is_boss', False):
+                    self.sound_system.play_sound(SoundPresets.BOSS_DEATH, volume=0.9)
+                    # Boss死亡特效更强
+                    y_pos = self.grid_start_y + enemy.lane * self.cell_size + self.cell_size // 2
+                    self.hit_feedback.create_explosion_particles(enemy.x, y_pos, count=40)
+                    self.hit_feedback.trigger_screen_shake(intensity=25, duration=0.6)
+                else:
+                    self.sound_system.play_sound(SoundPresets.UNIT_DEATH, volume=0.5)
+                    y_pos = self.grid_start_y + enemy.lane * self.cell_size + self.cell_size // 2
+                    self.hit_feedback.create_explosion_particles(enemy.x, y_pos, count=10)
+
                 self.enemies.remove(enemy)
                 self.gold += self.kill_reward  # 击杀奖励（从配置读取）
 
@@ -596,9 +676,18 @@ class BattleManager:
                     char_id = enemy_group.get('character')
                     count = enemy_group.get('count', 1)
                     health_mult = enemy_group.get('health_multiplier', 1.0)
+                    is_boss = enemy_group.get('is_boss', False)  # 标记为Boss
 
-                    # 获取角色配置
-                    char_config = self.config_loader.characters.get(char_id)
+                    # 获取角色配置（如果是Boss，从bosses目录读取）
+                    if is_boss:
+                        # 尝试从config_loader的bosses字典获取
+                        char_config = self.config_loader.get_boss_config(char_id) if hasattr(self.config_loader, 'get_boss_config') else None
+                        if not char_config:
+                            logger.warning(f"找不到Boss配置: {char_id}")
+                            continue
+                    else:
+                        char_config = self.config_loader.characters.get(char_id)
+
                     if char_config:
                         for j in range(count):
                             lane = j % self.grid_rows  # 随机分配行
@@ -608,9 +697,20 @@ class BattleManager:
                                 self.enemy_attack_interval,
                                 self.default_enemy_speed,
                                 self.block_distance,
-                                self.skill_manager
+                                self.skill_manager,
+                                self  # 传递battle_manager引用
                             )
                             self.enemies.append(enemy)
+
+                            # 如果是Boss，创建BossUnit包装
+                            if is_boss:
+                                boss_unit = self.boss_manager.create_boss(char_config, enemy, self)
+                                logger.info(f"生成Boss: {boss_unit.boss_name}")
+
+                                # 播放Boss出现音效和特效
+                                from core.sound_system import SoundPresets
+                                self.sound_system.play_sound(SoundPresets.BOSS_APPEAR, volume=0.9)
+                                self.hit_feedback.trigger_screen_shake(intensity=20, duration=0.5)
 
                 logger.info(f"生成波次 {i + 1}")
                 self.current_wave_index = i + 1
@@ -623,12 +723,21 @@ class BattleManager:
         """检查游戏结束条件"""
         # 失败：基地血量为0
         if self.base_hp <= 0:
+            if not self.game_over:  # 只在第一次触发时播放
+                from core.sound_system import SoundPresets
+                self.sound_system.play_sound(SoundPresets.DEFEAT, volume=0.8)
+                self.hit_feedback.trigger_screen_shake(intensity=30, duration=1.0)
+
             self.game_over = True
             self.victory = False
             logger.info("游戏失败：基地被摧毁")
 
         # 胜利：所有波次生成且所有敌人被消灭
         if self.all_waves_spawned and len(self.enemies) == 0:
+            if not self.game_over:  # 只在第一次触发时播放
+                from core.sound_system import SoundPresets
+                self.sound_system.play_sound(SoundPresets.VICTORY, volume=0.8)
+
             self.game_over = True
             self.victory = True
             logger.info("游戏胜利：击退所有敌人")
@@ -660,7 +769,7 @@ class BattleManager:
             return False
 
         # 创建防守单位
-        defender = Defender(card['config'], grid_x, grid_y, self.cell_size, self.skill_manager)
+        defender = Defender(card['config'], grid_x, grid_y, self.cell_size, self.skill_manager, self)
         self.defenders.append(defender)
         self.grid[grid_y][grid_x] = defender
 
@@ -686,6 +795,9 @@ class BattleManager:
 
         # 绘制弹道
         self.projectile_manager.render(screen)
+
+        # 绘制打击感反馈效果（伤害数字、粒子等）
+        self.hit_feedback.render(screen)
 
         # 绘制卡片槽
         self._render_card_slots(screen, fonts)

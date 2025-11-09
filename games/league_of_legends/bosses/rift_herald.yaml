@@ -1,0 +1,267 @@
+# LOL - 峡谷先锋 (Rift Herald)
+# 近战Boss，展示护盾、冲锋等特殊机制
+
+boss_id: "rift_herald"
+name: "峡谷先锋"
+type: boss
+description: "来自虚空的强大生物，拥有坚不可摧的护盾和毁灭性冲锋"
+
+# 基础属性
+stats:
+  hp: 7000
+  attack: 150  # 高攻击力
+  attack_range: 80  # 近战
+  attack_speed: 0.8
+  speed: 40  # 移动较快
+
+# 攻击类型
+attack_type: melee
+
+# === 三阶段系统（带护盾机制）===
+phases:
+  # 第一阶段：护盾保护
+  - phase: 1
+    hp_threshold: 1.0
+    hp_min: 0.6
+    damage_multiplier: 1.0
+    defense_multiplier: 1.5  # 高额防御
+    speed_multiplier: 1.0
+
+    skills:
+      - skill_id: "herald_charge"
+      - skill_id: "ground_slam"
+
+    buffs:
+      - type: damage_reduction
+        value: 0.25  # 25%伤害减免
+      - type: shield_block
+        value: 1.0
+
+    on_enter_effects: []
+
+  # 第二阶段：护盾破碎
+  - phase: 2
+    hp_threshold: 0.6
+    hp_min: 0.25
+    damage_multiplier: 1.3
+    defense_multiplier: 1.0
+    speed_multiplier: 1.2
+
+    skills:
+      - skill_id: "herald_charge"
+      - skill_id: "ground_slam"
+      - skill_id: "void_spike"
+
+    buffs:
+      - type: attack_boost
+        value: 0.3
+      - type: movement_speed_boost
+        value: 0.2
+
+    on_enter_effects:
+      - type: screen_shake
+        intensity: 18
+        duration: 0.6
+
+  # 第三阶段：狂暴冲锋
+  - phase: 3
+    hp_threshold: 0.25
+    hp_min: 0.0
+    damage_multiplier: 1.8
+    defense_multiplier: 0.7
+    speed_multiplier: 1.5
+
+    skills:
+      - skill_id: "herald_charge"
+      - skill_id: "ground_slam"
+      - skill_id: "void_spike"
+      - skill_id: "devastating_charge"
+
+    buffs:
+      - type: attack_boost
+        value: 0.8
+      - type: movement_speed_boost
+        value: 0.5
+      - type: attack_speed
+        value: 0.6
+
+    on_enter_effects:
+      - type: screen_shake
+        intensity: 22
+        duration: 1.0
+
+      - type: heal
+        value: 0.15  # 回复15%血量
+
+# === 技能列表 ===
+skills:
+  # 冲锋
+  - skill_id: "herald_charge"
+    name: "先锋冲锋"
+    class: damage
+    type: auto
+    cooldown: 10.0
+    description: "向前方冲锋，撞飞路径上的所有敌人"
+    range: 200
+    target_type: enemy
+    max_targets: 5
+    damage: 120
+
+    attack_type: instant
+
+    effects:
+      - type: knockback
+        value: 150  # 强力击退
+        duration: 1.0
+
+      - type: stun
+        value: 1.0
+        duration: 1.5
+
+  # 地面猛击
+  - skill_id: "ground_slam"
+    name: "大地震击"
+    class: aoe
+    type: auto
+    cooldown: 8.0
+    description: "猛击地面，造成范围伤害和减速"
+    range: 150
+    aoe_radius: 140
+    target_type: enemy
+    max_targets: 999
+    damage: 80
+
+    attack_type: instant
+
+    effects:
+      - type: slow
+        value: 0.6  # 强力减速
+        duration: 3.0
+
+      - type: knockup
+        value: 50
+        duration: 1.0
+
+  # 虚空尖刺
+  - skill_id: "void_spike"
+    name: "虚空尖刺"
+    class: damage
+    type: auto
+    cooldown: 6.0
+    description: "从地下召唤尖刺刺穿敌人"
+    range: 250
+    target_type: enemy
+    max_targets: 3
+    damage: 100
+
+    attack_type: instant
+
+    effects:
+      - type: bleed
+        value: 20  # 流血伤害
+        duration: 5.0
+
+      - type: root
+        value: 1.0  # 定身
+        duration: 2.0
+
+  # 终极冲锋
+  - skill_id: "devastating_charge"
+    name: "毁灭冲撞"
+    class: aoe
+    type: auto
+    cooldown: 20.0
+    description: "全力冲锋，造成大范围毁灭性伤害"
+    range: 300
+    aoe_radius: 100
+    target_type: enemy
+    max_targets: 999
+    damage: 200
+
+    attack_type: instant
+
+    effects:
+      - type: knockback
+        value: 200
+        duration: 1.5
+
+      - type: stun
+        value: 1.0
+        duration: 2.5
+
+      - type: bleed
+        value: 30
+        duration: 6.0
+
+# === 特殊机制 ===
+special_mechanics:
+  # 免疫所有控制
+  - type: immunity
+    immune_to:
+      - "stun"
+      - "knockback"
+      - "knockup"
+      - "root"
+      - "silence"
+      - "fear"
+      - "taunt"
+      - "slow"  # 免疫减速
+
+  # 护盾机制（第一阶段）
+  - type: shield
+    initial_shield: 2000  # 初始2000点护盾
+    shield_regen: 0  # 护盾不回复
+
+  # 狂暴（较晚触发）
+  - type: enrage
+    time: 240  # 4分钟后狂暴
+    bonus_damage: 2.0
+
+# === 被动特质 ===
+passive_traits:
+  # 高额护盾回复（第一阶段）
+  - type: shield_regen
+    value: 15  # 每秒回复15点护盾
+
+  # 生命回复
+  - type: hp_regen
+    value: 12
+
+  # 击杀回血
+  - type: heal_on_kill
+    value: 0.1  # 击杀回复10%最大生命
+
+  # 物理抗性
+  - type: damage_reduction
+    value: 0.2
+
+  # 反伤
+  - type: thorns
+    value: 0.2
+
+# === 奖励配置 ===
+rewards:
+  gold: 400
+  experience: 1500
+
+  items:
+    - item_id: "herald_eye"
+      drop_chance: 1.0  # 100%掉落先锋之眼
+
+    - item_id: "void_crystal"
+      drop_chance: 0.4
+
+# === 资源引用 ===
+assets:
+  sprite: "assets/bosses/rift_herald.png"
+  icon: "assets/bosses/herald_icon.png"
+  music: "assets/music/herald_battle.ogg"
+  sound_attack: "assets/sounds/herald_roar.wav"
+  sound_death: "assets/sounds/herald_death.wav"
+  sound_charge: "assets/sounds/herald_charge.wav"
+
+ui_config:
+  health_bar_color: [120, 50, 150]  # 紫色
+  name_color: [255, 215, 0]
+  show_phase_indicator: true
+  show_shield_bar: true  # 显示护盾条

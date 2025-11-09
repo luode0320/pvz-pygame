@@ -1,0 +1,86 @@
+# Boss测试关卡 - 展示Boss系统功能
+
+level_id: "boss_test"
+name: "Boss挑战：纳什男爵"
+description: "与强大的纳什男爵进行史诗战斗"
+difficulty: "hard"
+
+# 基地配置
+base:
+  initial_hp: 2000
+  max_hp: 2000
+
+# 经济配置
+economy:
+  initial_gold: 500
+  gold_generation_rate: 30
+  kill_reward: 30
+
+# 战场配置
+battlefield:
+  grid_rows: 5
+  grid_cols: 9
+  cell_size: 80
+
+# 波次配置
+waves:
+  # 第一波：普通小怪热身
+  - time: 0
+    enemies:
+      - character: "void_spawn"
+        count: 5
+        health_multiplier: 1.0
+
+  # 第二波：更多小怪
+  - time: 30
+    enemies:
+      - character: "void_spawn"
+        count: 8
+        health_multiplier: 1.2
+
+  # 第三波：Boss登场！
+  - time: 60
+    enemies:
+      - character: "baron_nashor"
+        count: 1
+        health_multiplier: 1.0
+        is_boss: true  # 标记为Boss
+
+  # 第四波：Boss + 小怪组合
+  - time: 120
+    enemies:
+      - character: "elder_dragon"
+        count: 1
+        health_multiplier: 0.8
+        is_boss: true
+
+      - character: "void_spawn"
+        count: 6
+        health_multiplier: 1.0
+
+  # 最终波：双Boss挑战
+  - time: 200
+    enemies:
+      - character: "rift_herald"
+        count: 1
+        health_multiplier: 1.2
+        is_boss: true
+
+      - character: "baron_nashor"
+        count: 1
+        health_multiplier: 0.7
+        is_boss: true
+
+# 胜利条件
+victory_conditions:
+  - type: "defeat_all_enemies"
+    description: "击败所有Boss"
+
+# 奖励
+rewards:
+  gold: 2000
+  experience: 5000
+  items:
+    - "baron_buff"
+    - "dragon_scale"
+    - "herald_eye"

@@ -1,0 +1,271 @@
+# LOL - 纳什男爵 (Baron Nashor)
+# 经典三阶段Boss，展示完整的Boss系统功能
+
+boss_id: "baron_nashor"
+name: "纳什男爵"
+type: boss
+description: "峡谷中最强大的中立生物，击败它将获得强大的增益效果"
+
+# 基础属性
+stats:
+  hp: 8000
+  attack: 80
+  attack_range: 180
+  attack_speed: 0.6
+  speed: 15  # Boss移动较慢
+
+# 攻击类型
+attack_type: ranged
+
+# 弹道配置
+projectile:
+  projectile_type: homing  # 追踪弹道
+  speed: 350
+  size: 15
+  color: [150, 0, 200]  # 紫色能量球
+  pierce: false
+  splash_radius: 50  # 小范围溅射
+  lifetime: 4.0
+
+# === 阶段系统（核心功能） ===
+phases:
+  # 第一阶段：100% - 70% 血量
+  - phase: 1
+    hp_threshold: 1.0
+    hp_min: 0.7
+    damage_multiplier: 1.0
+    defense_multiplier: 1.0
+    speed_multiplier: 1.0
+
+    skills:
+      - skill_id: "baron_basic_attack"
+      - skill_id: "void_corruption"
+
+    buffs:
+      - type: damage_reduction
+        value: 0.15  # 减少15%受到的伤害
+
+  # 第二阶段：70% - 35% 血量
+  - phase: 2
+    hp_threshold: 0.7
+    hp_min: 0.35
+    damage_multiplier: 1.3  # 提升30%伤害
+    defense_multiplier: 1.0
+    speed_multiplier: 1.1
+
+    skills:
+      - skill_id: "baron_basic_attack"
+      - skill_id: "void_corruption"
+      - skill_id: "tentacle_strike"  # 新增技能
+
+    buffs:
+      - type: damage_reduction
+        value: 0.2  # 提升到20%伤害减免
+      - type: attack_boost
+        value: 0.3  # 额外30%攻击力
+
+    # 进入第二阶段时的效果
+    on_enter_effects:
+      - type: screen_shake
+        intensity: 15
+        duration: 0.8
+
+      - type: spawn_minions
+        minion_id: "void_spawn"
+        count: 3
+
+    # 阶段内定期召唤
+    summon_minions:
+      minion_id: "void_spawn"
+      count: 2
+      cooldown: 25.0  # 每25秒召唤一次
+
+  # 第三阶段：35% - 0% 血量（狂暴）
+  - phase: 3
+    hp_threshold: 0.35
+    hp_min: 0.0
+    damage_multiplier: 1.8  # 提升80%伤害
+    defense_multiplier: 0.9  # 减少10%防御（更脆但更猛）
+    speed_multiplier: 1.3
+
+    skills:
+      - skill_id: "baron_basic_attack"
+      - skill_id: "void_corruption"
+      - skill_id: "tentacle_strike"
+      - skill_id: "void_storm"  # 终极技能
+
+    buffs:
+      - type: attack_boost
+        value: 0.8  # 80%攻击力加成
+      - type: attack_speed
+        value: 0.5  # 50%攻速加成
+      - type: movement_speed_boost
+        value: 0.3
+
+    on_enter_effects:
+      - type: screen_shake
+        intensity: 20
+        duration: 1.0
+
+      - type: heal
+        value: 0.1  # 回复10%最大生命值
+
+      - type: spawn_minions
+        minion_id: "void_spawn"
+        count: 5
+
+    summon_minions:
+      minion_id: "void_spawn"
+      count: 3
+      cooldown: 20.0  # 更频繁的召唤
+
+# === 技能列表 ===
+skills:
+  # 基础攻击强化
+  - skill_id: "baron_basic_attack"
+    name: "虚空打击"
+    class: damage
+    type: passive
+    trigger_condition: on_attack
+    trigger_chance: 0.3  # 30%概率触发
+    cooldown: 3.0
+    damage: 40
+    range: 200
+    target_type: enemy
+    max_targets: 1
+
+    effects:
+      - type: slow
+        value: 0.4  # 减速40%
+        duration: 2.0
+
+  # AOE腐蚀技能
+  - skill_id: "void_corruption"
+    name: "虚空腐蚀"
+    class: aoe
+    type: auto
+    cooldown: 10.0
+    description: "对范围内敌人造成持续伤害"
+    range: 250
+    aoe_radius: 120
+    target_type: enemy
+    max_targets: 6
+    damage: 60
+
+    attack_type: ranged
+    projectile:
+      projectile_type: arc
+      speed: 300
+      size: 20
+      color: [100, 0, 150]
+      splash_radius: 120
+      lifetime: 3.0
+
+    effects:
+      - type: poison
+        value: 15  # 每秒15点毒伤
+        duration: 5.0
+
+  # 触手攻击
+  - skill_id: "tentacle_strike"
+    name: "触手猛击"
+    class: damage
+    type: auto
+    cooldown: 8.0
+    description: "用触手攻击前方敌人，造成伤害和击退"
+    range: 150
+    target_type: enemy
+    max_targets: 3
+    damage: 100
+
+    attack_type: instant  # 瞬发近战
+
+    effects:
+      - type: knockback
+        value: 80  # 击退距离
+        duration: 0.5
+
+      - type: stun
+        value: 1.0
+        duration: 1.0
+
+  # 终极技能
+  - skill_id: "void_storm"
+    name: "虚空风暴"
+    class: aoe
+    type: auto
+    cooldown: 20.0
+    description: "召唤虚空风暴，对大范围敌人造成巨额伤害"
+    range: 300
+    aoe_radius: 200
+    target_type: enemy
+    max_targets: 999  # 无限制
+    damage: 150
+
+    attack_type: instant
+
+    effects:
+      - type: silence
+        value: 1.0
+        duration: 3.0  # 沉默3秒
+
+      - type: burn
+        value: 25  # 每秒25点燃烧伤害
+        duration: 6.0
+
+# === 特殊机制 ===
+special_mechanics:
+  # 免疫控制
+  - type: immunity
+    immune_to:
+      - "stun"
+      - "knockup"
+      - "fear"
+      - "taunt"
+
+  # 超时狂暴
+  - type: enrage
+    time: 180  # 3分钟后狂暴
+    bonus_damage: 2.5  # 伤害提升250%
+
+# === 被动特质 ===
+passive_traits:
+  # 生命回复
+  - type: hp_regen
+    value: 10  # 每秒回复10点生命
+
+  # 护甲
+  - type: damage_reduction
+    value: 0.1  # 基础10%伤害减免
+
+  # 反伤
+  - type: thorns
+    value: 0.15  # 反伤15%
+
+# === 奖励配置 ===
+rewards:
+  gold: 500
+  experience: 2000
+
+  # 物品掉落
+  items:
+    - item_id: "baron_buff"
+      drop_chance: 1.0  # 100%掉落男爵Buff
+
+    - item_id: "legendary_essence"
+      drop_chance: 0.3  # 30%掉落传说精华
+
+# === 资源引用 ===
+assets:
+  sprite: "assets/bosses/baron_nashor.png"
+  icon: "assets/bosses/baron_icon.png"
+  music: "assets/music/baron_battle.ogg"
+  sound_attack: "assets/sounds/baron_attack.wav"
+  sound_death: "assets/sounds/baron_death.wav"
+  sound_roar: "assets/sounds/baron_roar.wav"
+
+# UI配置
+ui_config:
+  health_bar_color: [150, 0, 200]  # 紫色血条
+  name_color: [255, 215, 0]  # 金色名字
+  show_phase_indicator: true

@@ -1,0 +1,56 @@
+# LOL - 虚空幼体 (Void Spawn)
+# Boss召唤的小怪，由纳什男爵召唤
+
+character_id: "void_spawn"
+name: "虚空幼体"
+type: attacker  # 攻击方（敌人）
+cost: 0  # 召唤物无部署成本
+description: "由虚空能量凝聚而成的小型生物"
+
+# 基础属性（较弱）
+stats:
+  hp: 150
+  attack: 20
+  attack_range: 60
+  attack_speed: 1.0
+  speed: 50  # 移动较快
+
+# 攻击类型
+attack_type: melee
+
+# 技能列表
+skills:
+  # 自爆技能
+  - skill_id: "void_explosion"
+    name: "虚空爆裂"
+    class: aoe
+    type: passive
+    trigger_condition: on_death  # 死亡时触发
+    trigger_chance: 1.0
+    cooldown: 0
+    description: "死亡时爆炸，对周围敌人造成伤害"
+    range: 0
+    aoe_radius: 80
+    target_type: enemy
+    max_targets: 999
+    damage: 30
+
+    attack_type: instant
+
+    effects:
+      - type: slow
+        value: 0.3
+        duration: 2.0
+
+# 被动特质
+passive_traits:
+  # 移速加成
+  - type: bonus_move_speed
+    value: 0.2  # 额外20%移速
+
+# 资源引用
+assets:
+  basic_sprite: "assets/sprites/void_spawn.png"
+  basic_icon: "assets/icons/void_spawn.png"
+  sound_attack: "assets/sounds/void_attack.wav"
+  sound_death: "assets/sounds/void_death.wav"

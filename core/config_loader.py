@@ -48,6 +48,7 @@ class ConfigLoader:
         # 配置缓存
         self.games: Dict[str, Dict] = {}  # 游戏IP配置
         self.characters: Dict[str, Dict] = {}  # 角色配置
+        self.bosses: Dict[str, Dict] = {}  # Boss配置
         self.skins: Dict[str, Dict] = {}  # 皮肤配置
         self.skills: Dict[str, Dict] = {}  # 技能配置
         self.effects: Dict[str, Dict] = {}  # 效果配置
@@ -247,6 +248,55 @@ class ConfigLoader:
         logger.info(f"加载皮肤: {config['name']} ({skin_id})")
         return True
 
+    def load_boss(self, game_id: str, boss_file: Path) -> bool:
+        """
+        加载Boss配置
+
+        参数:
+            game_id: 所属游戏ID
+            boss_file: Boss配置文件路径
+
+        返回:
+            加载是否成功
+        """
+        config = self.load_yaml(boss_file)
+
+        if not config:
+            return False
+
+        # 验证必须字段
+        required_fields = ["boss_id", "name", "type", "stats"]
+        if not self.validate_required_fields(config, required_fields,
+                                            f"Boss{boss_file.stem}"):
+            return False
+
+        # 验证stats必须字段
+        stats_required = ["hp", "attack", "attack_range", "attack_speed"]
+        if not self.validate_required_fields(config['stats'], stats_required,
+                                            f"Boss{config['boss_id']}的stats"):
+            return False
+
+        # 存储配置
+        boss_id = config['boss_id']
+        config['game_id'] = game_id
+        config['config_file'] = str(boss_file)
+        self.bosses[boss_id] = config
+
+        logger.info(f"加载Boss: {config['name']} ({boss_id})")
+        return True
+
+    def get_boss_config(self, boss_id: str) -> Optional[Dict]:
+        """
+        获取Boss配置
+
+        参数:
+            boss_id: Boss ID
+
+        返回:
+            Boss配置字典，不存在返回None
+        """
+        return self.bosses.get(boss_id)
+
     def load_campaign(self, campaign_id: str) -> bool:
         """
         加载战役配置
@@ -428,6 +478,12 @@ class ConfigLoader:
                         for skin_file in skins_dir.glob("*.yaml"):
                             self.load_skin(game_id, skin_file)
 
+                    # 加载Boss配置
+                    bosses_dir = game_dir / "bosses"
+                    if bosses_dir.exists():
+                        for boss_file in bosses_dir.glob("*.yaml"):
+                            self.load_boss(game_id, boss_file)
+
         # 扫描战役
         if self.campaigns_dir.exists():
             for campaign_dir in self.campaigns_dir.iterdir():
@@ -445,7 +501,7 @@ class ConfigLoader:
         elapsed = time.time() - start_time
         logger.info(f"配置扫描完成，耗时: {elapsed:.2f}秒")
         logger.info(f"统计: {len(self.games)}个游戏IP, {len(self.characters)}个角色, "
-                   f"{len(self.skins)}个皮肤, {len(self.campaigns)}个战役, "
+                   f"{len(self.bosses)}个Boss, {len(self.skins)}个皮肤, {len(self.campaigns)}个战役, "
                    f"{len(self.levels)}个关卡, {len(self.performance_profiles)}个性能配置")
 
     def check_updates(self) -> List[str]:
