@@ -355,7 +355,7 @@ class GameManager:
 
             # 填充字段
             self.game_id_var.set(game_id)
-            self.game_id_entry.config(state=tk.DISABLED)  # 编辑时不能修改ID
+            self.game_id_entry.config(state=tk.DISABLED)  # 禁止修改ID（作为主键，应保持不变）
 
             self.game_name_var.set(game_data.get("name", ""))
             self.game_type_var.set(game_data.get("type", "tower_defense"))
@@ -496,7 +496,6 @@ class GameManager:
         except Exception as e:
             logger.error(f"保存游戏IP失败: {e}")
             messagebox.showerror("错误", f"保存失败:\n{e}")
-
 
 # 测试代码
 if __name__ == "__main__":

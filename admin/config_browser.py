@@ -253,16 +253,58 @@ class ConfigBrowser:
                         for char_id, char_data in sorted_chars:
                             char_name = char_data.get("name", char_id)
                             if search_text and search_text not in char_name.lower():
-                                continue
+                                # 检查该角色的技能是否匹配搜索
+                                has_skill_match = False
+                                if filter_type in ["全部", "技能"]:
+                                    for skill in char_data.get("skills", []):
+                                        if search_text in skill.get("name", "").lower():
+                                            has_skill_match = True
+                                            break
+                                if not has_skill_match:
+                                    continue
 
                             status = self._check_character_status(char_id, char_data)
-                            self.tree.insert(
+                            # 创建角色节点
+                            char_node = self.tree.insert(
                                 characters_subnode,
                                 tk.END,
                                 text=char_name,
                                 values=("角色", status, f"games/{game_id}/characters/{char_id}"),
                                 tags=(f"character:{char_id}", status.lower())
                             )
+
+                            # 添加该角色的技能
+                            if filter_type in ["全部", "角色", "技能"]:
+                                skills = char_data.get("skills", [])
+                                if skills:
+                                    skills_subnode = self.tree.insert(
+                                        char_node, tk.END, text="技能", tags=("subcategory",)
+                                    )
+
+                                    # 按技能顺序显示（保持配置文件中的顺序）
+                                    for skill in skills:
+                                        skill_name = skill.get("name", skill.get("skill_id", "未知技能"))
+                                        skill_id = skill.get("skill_id", "")
+
+                                        # 搜索过滤
+                                        if search_text and search_text not in skill_name.lower():
+                                            continue
+
+                                        # 检查技能状态
+                                        skill_status = self._check_skill_status(skill)
+
+                                        # 技能类型和冷却时间
+                                        skill_type = skill.get("type", "unknown")
+                                        cooldown = skill.get("cooldown", 0)
+                                        skill_info = f"{skill_name} ({skill_type}, CD:{cooldown}s)"
+
+                                        self.tree.insert(
+                                            skills_subnode,
+                                            tk.END,
+                                            text=skill_info,
+                                            values=("技能", skill_status, f"games/{game_id}/characters/{char_id}/skills/{skill_id}"),
+                                            tags=(f"skill:{char_id}:{skill_id}", skill_status.lower())
+                                        )
 
                 # 添加该游戏下的皮肤
                 if filter_type in ["全部", "皮肤"]:
@@ -437,6 +479,20 @@ class ConfigBrowser:
         if not level_data.get("name"):
             return "无效"
         if not level_data.get("waves"):
+            return "警告"
+
+        return "有效"
+
+    def _check_skill_status(self, skill_data: Dict) -> str:
+        """检查技能状态"""
+        # 检查必需字段
+        if not skill_data.get("name"):
+            return "无效"
+        if not skill_data.get("skill_id"):
+            return "无效"
+        if not skill_data.get("type"):
+            return "警告"
+        if skill_data.get("cooldown") is None:
             return "警告"
 
         return "有效"
