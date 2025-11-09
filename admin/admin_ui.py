@@ -83,7 +83,7 @@ class AdminUI:
         password_entry.focus()
 
         # 提示信息
-        hint_label = ttk.Label(frame, text="默认密码: admin123", foreground="gray")
+        hint_label = ttk.Label(frame, text="默认密码: admin", foreground="gray")
         hint_label.grid(row=2, column=0, columnspan=2, pady=5)
 
         def verify_password():
@@ -92,7 +92,7 @@ class AdminUI:
             config_loader = get_config_loader(".")
             settings = config_loader.settings
 
-            correct_password = settings.get('admin', {}).get('password', 'admin123')
+            correct_password = settings.get('admin', {}).get('password', 'admin')
             entered_password = password_var.get()
 
             if entered_password == correct_password:

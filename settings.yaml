@@ -27,7 +27,7 @@ admin:
     max_model_size: 52428800
   enabled: true
   log_path: admin/admin_log.txt
-  password: admin123
+  password: admin
   recycle_bin_path: admin/recycle_bin
 
   # 管理界面快捷键配置
