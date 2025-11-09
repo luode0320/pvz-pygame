@@ -8,7 +8,10 @@
       "Bash(timeout 5 sleep:*)",
       "Bash(cd:*)",
       "Bash(\"E:\\pvz-pygame\\日志.md\")",
-      "Bash(timeout 3 sleep:*)"
+      "Bash(timeout 3 sleep:*)",
+      "Bash(pip install:*)",
+      "Bash(=9.0.0)",
+      "Bash(pip show:*)"
     ],
     "deny": [],
     "ask": []

@@ -318,7 +318,7 @@ class CrossVerseArena:
 
         # 绘制多层阴影效果
         for offset in [(6, 6), (5, 5), (4, 4), (3, 3)]:
-            shadow = self.fonts['huge'].render("CrossVerse Arena", True, shadow_color)
+            shadow = self.fonts['huge'].render("宇宙竞技场", True, shadow_color)
             shadow_rect = shadow.get_rect(center=(screen.get_width() // 2 + offset[0], 150 + offset[1]))
             shadow_surface = shadow.convert_alpha()
             shadow_surface.set_alpha(30)

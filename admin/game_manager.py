@@ -11,6 +11,7 @@ from typing import Dict, Optional
 import yaml
 import shutil
 from datetime import datetime
+from PIL import Image, ImageTk
 
 logger = logging.getLogger(__name__)
 
@@ -138,6 +139,34 @@ class GameManager:
         # 编辑器字段
         row = 0
 
+        # 游戏图标（放在最前面）
+        tk.Label(self.editor_content, text="游戏图标:", bg="white", anchor=tk.W).grid(
+            row=row, column=0, sticky=tk.W, padx=5, pady=10
+        )
+        icon_frame = tk.Frame(self.editor_content, bg="white")
+        icon_frame.grid(row=row, column=1, columnspan=2, sticky=tk.W, padx=5, pady=10)
+
+        # 创建固定大小的占位图片（128x128像素，灰色背景）
+        placeholder_img = Image.new('RGB', (128, 128), color='#D3D3D3')
+        self.placeholder_photo = ImageTk.PhotoImage(placeholder_img)
+
+        # 图标预览（显示图片）- 固定128x128像素
+        self.icon_preview_label = tk.Label(
+            icon_frame,
+            image=self.placeholder_photo,
+            bg="white",
+            relief=tk.SUNKEN,
+            borderwidth=2
+        )
+        self.icon_preview_label.pack(side=tk.LEFT, padx=(0, 10))
+
+        # 保存当前图标路径和PhotoImage对象（防止被垃圾回收）
+        self.game_icon_var = tk.StringVar()
+        self.current_icon_photo = None
+
+        tk.Button(icon_frame, text="选择图标", command=self._select_icon, width=12, height=2).pack(side=tk.LEFT)
+        row += 1
+
         # 游戏ID
         tk.Label(self.editor_content, text="游戏ID *:", bg="white", anchor=tk.W).grid(
             row=row, column=0, sticky=tk.W, padx=5, pady=5
@@ -212,18 +241,6 @@ class GameManager:
         tk.Entry(self.editor_content, textvariable=self.game_version_var, width=40).grid(
             row=row, column=1, sticky=tk.W, padx=5, pady=5
         )
-        row += 1
-
-        # 图标路径
-        tk.Label(self.editor_content, text="游戏图标:", bg="white", anchor=tk.W).grid(
-            row=row, column=0, sticky=tk.W, padx=5, pady=5
-        )
-        icon_frame = tk.Frame(self.editor_content, bg="white")
-        icon_frame.grid(row=row, column=1, sticky=tk.W, padx=5, pady=5)
-
-        self.game_icon_var = tk.StringVar()
-        tk.Entry(icon_frame, textvariable=self.game_icon_var, width=30).pack(side=tk.LEFT, padx=(0, 5))
-        tk.Button(icon_frame, text="选择图标", command=self._select_icon, width=10).pack(side=tk.LEFT)
         row += 1
 
         # 标签
@@ -386,7 +403,11 @@ class GameManager:
 
             self.game_author_var.set(game_data.get("author", ""))
             self.game_version_var.set(game_data.get("version", "1.0.0"))
-            self.game_icon_var.set(game_data.get("icon", ""))
+
+            # 加载图标并更新预览
+            icon_path = game_data.get("icon", "")
+            self.game_icon_var.set(icon_path)
+            self._update_icon_preview(icon_path)
 
             tags = game_data.get("tags", [])
             self.game_tags_var.set(", ".join(tags) if tags else "")
@@ -409,6 +430,56 @@ class GameManager:
         self.game_version_var.set("1.0.0")
         self.game_icon_var.set("")
         self.game_tags_var.set("")
+        # 清空图标预览
+        self._update_icon_preview("")
+
+    def _update_icon_preview(self, icon_path: str):
+        """
+        更新图标预览
+
+        参数:
+            icon_path: 图标文件路径（可以是绝对路径或相对于项目根目录的路径）
+        """
+        try:
+            # 处理路径
+            if icon_path:
+                # 如果是相对路径，转换为绝对路径
+                path = Path(icon_path)
+                if not path.is_absolute():
+                    path = self.root_dir / icon_path
+
+                if path.exists():
+                    # 加载图片
+                    img = Image.open(path)
+                    # 调整图片大小为128x128（保持宽高比）
+                    img.thumbnail((128, 128), Image.Resampling.LANCZOS)
+
+                    # 创建一个白色背景的128x128画布
+                    canvas_img = Image.new('RGB', (128, 128), color='white')
+                    # 将缩略图居中粘贴到画布上
+                    offset = ((128 - img.width) // 2, (128 - img.height) // 2)
+                    canvas_img.paste(img, offset)
+
+                    # 转换为PhotoImage
+                    self.current_icon_photo = ImageTk.PhotoImage(canvas_img)
+                    # 更新Label
+                    self.icon_preview_label.config(image=self.current_icon_photo, bg="white")
+                    logger.info(f"图标预览已更新: {path}")
+                else:
+                    # 文件不存在 - 创建红色警告图片
+                    error_img = Image.new('RGB', (128, 128), color='#FFB6C1')
+                    self.current_icon_photo = ImageTk.PhotoImage(error_img)
+                    self.icon_preview_label.config(image=self.current_icon_photo, bg="white")
+            else:
+                # 没有图标 - 使用占位图片
+                self.icon_preview_label.config(image=self.placeholder_photo, bg="white")
+                self.current_icon_photo = None
+        except Exception as e:
+            logger.error(f"更新图标预览失败: {e}")
+            # 加载失败 - 创建红色警告图片
+            error_img = Image.new('RGB', (128, 128), color='#FFB6C1')
+            self.current_icon_photo = ImageTk.PhotoImage(error_img)
+            self.icon_preview_label.config(image=self.current_icon_photo, bg="white")
 
     def _select_icon(self):
         """选择游戏图标"""
@@ -418,6 +489,8 @@ class GameManager:
         )
         if file_path:
             self.game_icon_var.set(file_path)
+            # 更新预览
+            self._update_icon_preview(file_path)
 
     def _save_game(self):
         """保存游戏IP"""

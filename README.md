@@ -36,7 +36,7 @@ CrossVerse Arena 是一个创新的跨IP角色对战塔防平台，参考了《�
 ### 安装依赖
 
 ```bash
-pip install pygame pyyaml psutil
+pip install pygame pyyaml psutil Pillow
 ```
 
 ### 运行游戏
@@ -57,7 +57,7 @@ python main.py
 
 ### 管理界面
 
-**快捷键**：`Ctrl+Shift+D`
+**快捷键**：`Ctrl+A`
 **默认密码**：`admin`（请务必修改）
 
 **功能**：
