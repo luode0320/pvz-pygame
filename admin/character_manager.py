@@ -740,7 +740,7 @@ class CharacterManager:
         """刷新角色列表"""
         try:
             # 触发配置重新扫描
-            self.config_loader.scan_configs()
+            self.config_loader.scan_all()
 
             # 清空列表
             self.char_listbox.delete(0, tk.END)

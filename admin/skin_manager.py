@@ -449,7 +449,7 @@ class SkinManager:
         """刷新皮肤列表"""
         try:
             # 触发配置重新扫描
-            self.config_loader.scan_configs()
+            self.config_loader.scan_all()
 
             # 清空列表
             self.skin_listbox.delete(0, tk.END)

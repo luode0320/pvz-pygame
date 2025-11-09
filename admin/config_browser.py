@@ -153,7 +153,7 @@ class ConfigBrowser:
             self.status_label.config(text="正在扫描配置...")
 
             # 触发配置重新扫描
-            self.config_loader.scan_configs()
+            self.config_loader.scan_all()
 
             # 收集配置数据
             self.config_data = {
@@ -179,7 +179,7 @@ class ConfigBrowser:
             self.status_label.config(text="刷新失败")
 
     def _rebuild_tree(self):
-        """重建树形视图"""
+        """重建树形视图（层级结构）"""
         # 清空树
         for item in self.tree.get_children():
             self.tree.delete(item)
@@ -188,92 +188,192 @@ class ConfigBrowser:
         search_text = self.search_var.get().lower()
         filter_type = self.filter_var.get()
 
-        # 添加游戏IP节点
-        if filter_type in ["全部", "游戏IP"]:
+        # 构建游戏IP层级结构（游戏IP -> 角色、皮肤）
+        if filter_type in ["全部", "游戏IP", "角色", "皮肤"]:
             games_node = self.tree.insert("", tk.END, text="游戏IP", tags=("category",))
-            for game_id, game_data in self.config_data.get("games", {}).items():
-                if search_text and search_text not in game_data.get("name", "").lower():
-                    continue
+
+            # 按游戏名称排序
+            sorted_games = sorted(
+                self.config_data.get("games", {}).items(),
+                key=lambda x: x[1].get("name", x[0])
+            )
+
+            for game_id, game_data in sorted_games:
+                game_name = game_data.get("name", game_id)
+
+                # 搜索过滤
+                if search_text and search_text not in game_name.lower():
+                    # 检查该游戏下的角色和皮肤是否匹配搜索
+                    has_match = False
+                    if filter_type in ["全部", "角色"]:
+                        for char_id, char_data in self.config_data.get("characters", {}).items():
+                            if char_data.get("game_id") == game_id:
+                                if search_text in char_data.get("name", "").lower():
+                                    has_match = True
+                                    break
+                    if not has_match and filter_type in ["全部", "皮肤"]:
+                        for skin_id, skin_data in self.config_data.get("skins", {}).items():
+                            if skin_data.get("game_id") == game_id:
+                                if search_text in skin_data.get("name", "").lower():
+                                    has_match = True
+                                    break
+                    if not has_match:
+                        continue
+
+                # 添加游戏IP节点
                 status = self._check_game_status(game_id, game_data)
-                self.tree.insert(
+                game_node = self.tree.insert(
                     games_node,
                     tk.END,
-                    text=game_data.get("name", game_id),
+                    text=game_name,
                     values=("游戏IP", status, f"games/{game_id}"),
                     tags=(f"game:{game_id}", status.lower())
                 )
 
-        # 添加角色节点
-        if filter_type in ["全部", "角色"]:
-            characters_node = self.tree.insert("", tk.END, text="角色", tags=("category",))
-            for char_id, char_data in self.config_data.get("characters", {}).items():
-                if search_text and search_text not in char_data.get("name", "").lower():
-                    continue
-                status = self._check_character_status(char_id, char_data)
-                game_name = self.config_data.get("games", {}).get(
-                    char_data.get("game_id"),
-                    {}
-                ).get("name", "未知游戏")
-                self.tree.insert(
-                    characters_node,
-                    tk.END,
-                    text=f"{char_data.get('name', char_id)} ({game_name})",
-                    values=("角色", status, f"games/{char_data.get('game_id')}/characters/{char_id}"),
-                    tags=(f"character:{char_id}", status.lower())
-                )
+                # 添加该游戏下的角色
+                if filter_type in ["全部", "角色"]:
+                    # 收集该游戏的角色
+                    game_characters = {
+                        char_id: char_data
+                        for char_id, char_data in self.config_data.get("characters", {}).items()
+                        if char_data.get("game_id") == game_id
+                    }
 
-        # 添加皮肤节点
-        if filter_type in ["全部", "皮肤"]:
-            skins_node = self.tree.insert("", tk.END, text="皮肤", tags=("category",))
-            for skin_id, skin_data in self.config_data.get("skins", {}).items():
-                if search_text and search_text not in skin_data.get("name", "").lower():
-                    continue
-                status = self._check_skin_status(skin_id, skin_data)
-                char_name = self.config_data.get("characters", {}).get(
-                    skin_data.get("character_id"),
-                    {}
-                ).get("name", "未知角色")
-                self.tree.insert(
-                    skins_node,
-                    tk.END,
-                    text=f"{skin_data.get('name', skin_id)} ({char_name})",
-                    values=("皮肤", status, f"games/{skin_data.get('game_id')}/skins/{skin_id}"),
-                    tags=(f"skin:{skin_id}", status.lower())
-                )
+                    if game_characters:
+                        characters_subnode = self.tree.insert(
+                            game_node, tk.END, text="角色", tags=("subcategory",)
+                        )
 
-        # 添加战役节点
-        if filter_type in ["全部", "战役"]:
+                        # 按角色名称排序
+                        sorted_chars = sorted(
+                            game_characters.items(),
+                            key=lambda x: x[1].get("name", x[0])
+                        )
+
+                        for char_id, char_data in sorted_chars:
+                            char_name = char_data.get("name", char_id)
+                            if search_text and search_text not in char_name.lower():
+                                continue
+
+                            status = self._check_character_status(char_id, char_data)
+                            self.tree.insert(
+                                characters_subnode,
+                                tk.END,
+                                text=char_name,
+                                values=("角色", status, f"games/{game_id}/characters/{char_id}"),
+                                tags=(f"character:{char_id}", status.lower())
+                            )
+
+                # 添加该游戏下的皮肤
+                if filter_type in ["全部", "皮肤"]:
+                    # 收集该游戏的皮肤
+                    game_skins = {
+                        skin_id: skin_data
+                        for skin_id, skin_data in self.config_data.get("skins", {}).items()
+                        if skin_data.get("game_id") == game_id
+                    }
+
+                    if game_skins:
+                        skins_subnode = self.tree.insert(
+                            game_node, tk.END, text="皮肤", tags=("subcategory",)
+                        )
+
+                        # 按皮肤名称排序
+                        sorted_skins = sorted(
+                            game_skins.items(),
+                            key=lambda x: x[1].get("name", x[0])
+                        )
+
+                        for skin_id, skin_data in sorted_skins:
+                            skin_name = skin_data.get("name", skin_id)
+                            if search_text and search_text not in skin_name.lower():
+                                continue
+
+                            status = self._check_skin_status(skin_id, skin_data)
+                            char_name = self.config_data.get("characters", {}).get(
+                                skin_data.get("character_id"),
+                                {}
+                            ).get("name", "未知角色")
+
+                            self.tree.insert(
+                                skins_subnode,
+                                tk.END,
+                                text=f"{skin_name} ({char_name})",
+                                values=("皮肤", status, f"games/{game_id}/skins/{skin_id}"),
+                                tags=(f"skin:{skin_id}", status.lower())
+                            )
+
+        # 构建战役层级结构（战役 -> 关卡）
+        if filter_type in ["全部", "战役", "关卡"]:
             campaigns_node = self.tree.insert("", tk.END, text="战役", tags=("category",))
-            for campaign_id, campaign_data in self.config_data.get("campaigns", {}).items():
-                if search_text and search_text not in campaign_data.get("name", "").lower():
-                    continue
+
+            # 按战役名称排序
+            sorted_campaigns = sorted(
+                self.config_data.get("campaigns", {}).items(),
+                key=lambda x: x[1].get("name", x[0])
+            )
+
+            for campaign_id, campaign_data in sorted_campaigns:
+                campaign_name = campaign_data.get("name", campaign_id)
+
+                # 搜索过滤
+                if search_text and search_text not in campaign_name.lower():
+                    # 检查该战役下的关卡是否匹配搜索
+                    has_match = False
+                    if filter_type in ["全部", "关卡"]:
+                        for level_key, level_data in self.config_data.get("levels", {}).items():
+                            if level_key.startswith(campaign_id + "/"):
+                                if search_text in level_data.get("name", "").lower():
+                                    has_match = True
+                                    break
+                    if not has_match:
+                        continue
+
+                # 添加战役节点
                 status = self._check_campaign_status(campaign_id, campaign_data)
-                self.tree.insert(
+                campaign_node = self.tree.insert(
                     campaigns_node,
                     tk.END,
-                    text=campaign_data.get("name", campaign_id),
+                    text=campaign_name,
                     values=("战役", status, f"campaigns/{campaign_id}"),
                     tags=(f"campaign:{campaign_id}", status.lower())
                 )
 
-        # 添加关卡节点
-        if filter_type in ["全部", "关卡"]:
-            levels_node = self.tree.insert("", tk.END, text="关卡", tags=("category",))
-            for level_key, level_data in self.config_data.get("levels", {}).items():
-                if search_text and search_text not in level_data.get("name", "").lower():
-                    continue
-                status = self._check_level_status(level_key, level_data)
-                campaign_id = level_key.split('/')[0] if '/' in level_key else "未知战役"
-                self.tree.insert(
-                    levels_node,
-                    tk.END,
-                    text=f"{level_data.get('name', level_key)} ({campaign_id})",
-                    values=("关卡", status, f"campaigns/{level_key}"),
-                    tags=(f"level:{level_key}", status.lower())
-                )
+                # 添加该战役下的关卡
+                if filter_type in ["全部", "关卡"]:
+                    # 收集该战役的关卡
+                    campaign_levels = {
+                        level_key: level_data
+                        for level_key, level_data in self.config_data.get("levels", {}).items()
+                        if level_key.startswith(campaign_id + "/")
+                    }
+
+                    if campaign_levels:
+                        levels_subnode = self.tree.insert(
+                            campaign_node, tk.END, text="关卡", tags=("subcategory",)
+                        )
+
+                        # 按关卡ID排序（保持level_01, level_02的顺序）
+                        sorted_levels = sorted(campaign_levels.items(), key=lambda x: x[0])
+
+                        for level_key, level_data in sorted_levels:
+                            level_name = level_data.get("name", level_key)
+                            if search_text and search_text not in level_name.lower():
+                                continue
+
+                            status = self._check_level_status(level_key, level_data)
+                            # 只显示关卡名称，不显示战役ID（因为已经在层级中体现）
+                            self.tree.insert(
+                                levels_subnode,
+                                tk.END,
+                                text=level_name,
+                                values=("关卡", status, f"campaigns/{level_key}"),
+                                tags=(f"level:{level_key}", status.lower())
+                            )
 
         # 配置标签样式
         self.tree.tag_configure("category", font=("Arial", 10, "bold"))
+        self.tree.tag_configure("subcategory", font=("Arial", 9, "bold"), foreground="#333")
         self.tree.tag_configure("有效", foreground="green")
         self.tree.tag_configure("警告", foreground="orange")
         self.tree.tag_configure("无效", foreground="red")
