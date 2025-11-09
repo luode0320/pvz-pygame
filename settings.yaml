@@ -219,3 +219,14 @@ gameplay:
     base_damage_multiplier: 10  # 敌人到达基地的伤害倍数
     block_distance: 50  # 阻挡距离（像素）
     default_enemy_speed: 20  # 默认敌人移动速度
+
+  # 游戏速度控制
+  time_control:
+    available_speeds: [1.0, 1.5, 2.0]  # 可选速度倍率
+    default_speed: 1.0  # 默认速度
+
+# 按键控制设置
+controls:
+  speed_toggle: "space"  # 速度切换键
+  pause: "escape"  # 暂停键
+  fullscreen: "f11"  # 全屏切换键

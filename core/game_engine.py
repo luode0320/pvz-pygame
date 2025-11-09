@@ -83,6 +83,11 @@ class GameEngine:
         self.delta_time = 0  # 帧间隔时间（秒）
         self.last_frame_time = time.time()
 
+        # 游戏加速（从配置读取）
+        time_config = settings.get('gameplay', {}).get('time_control', {})
+        self.available_speeds = time_config.get('available_speeds', [1.0, 1.5, 2.0])
+        self.time_scale = time_config.get('default_speed', 1.0)
+
         # 全局计时器
         self.game_time = 0  # 游戏总运行时间（秒）
 
@@ -113,6 +118,11 @@ class GameEngine:
             return
 
         logger.info(f"状态切换: {self.current_state.value} -> {new_state.value}")
+
+        # 离开战斗状态时重置速度
+        if self.current_state == GameState.BATTLE and new_state != GameState.PAUSE:
+            self.time_scale = 1.0
+
         self.previous_state = self.current_state
         self.current_state = new_state
 
@@ -144,6 +154,28 @@ class GameEngine:
                 listener(event_type, event_data)
             except Exception as e:
                 logger.error(f"事件监听器执行失败 [{event_type}]: {e}")
+
+    def _get_pygame_key(self, key_name: str) -> int:
+        """
+        将键名字符串转换为pygame键码
+
+        参数:
+            key_name: 键名（如 "space", "escape", "f11"）
+
+        返回:
+            pygame键码
+        """
+        key_map = {
+            'space': pygame.K_SPACE,
+            'escape': pygame.K_ESCAPE,
+            'f11': pygame.K_F11,
+            'enter': pygame.K_RETURN,
+            'tab': pygame.K_TAB,
+            'shift': pygame.K_LSHIFT,
+            'ctrl': pygame.K_LCTRL,
+            'alt': pygame.K_LALT,
+        }
+        return key_map.get(key_name.lower(), pygame.K_SPACE)
 
     def handle_events(self) -> None:
         """
@@ -182,6 +214,16 @@ class GameEngine:
                 elif event.key == pygame.K_F11:
                     self.toggle_fullscreen()
 
+                # 游戏速度切换（从配置读取快捷键）
+                speed_key_name = self.settings.get('controls', {}).get('speed_toggle', 'space')
+                speed_key = self._get_pygame_key(speed_key_name)
+                if event.key == speed_key:
+                    if self.current_state == GameState.BATTLE:
+                        current_index = self.available_speeds.index(self.time_scale)
+                        next_index = (current_index + 1) % len(self.available_speeds)
+                        self.time_scale = self.available_speeds[next_index]
+                        logger.info(f"游戏速度切换至: {self.time_scale}x")
+
                 # Alt+Enter - 切换全屏（备用快捷键）
                 keys = pygame.key.get_pressed()
                 if event.key == pygame.K_RETURN and (keys[pygame.K_LALT] or keys[pygame.K_RALT]):
@@ -205,8 +247,14 @@ class GameEngine:
         """
         # 计算delta time
         current_time = time.time()
-        self.delta_time = current_time - self.last_frame_time
+        raw_delta = current_time - self.last_frame_time
         self.last_frame_time = current_time
+
+        # 应用时间倍率（仅在战斗状态）
+        if self.current_state == GameState.BATTLE:
+            self.delta_time = raw_delta * self.time_scale
+        else:
+            self.delta_time = raw_delta
 
         # 更新游戏时间
         self.game_time += self.delta_time

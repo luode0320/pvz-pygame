@@ -981,14 +981,24 @@ class CrossVerseArena:
         # 更新鼠标状态
         self.mouse_pressed_last_frame = mouse_pressed
 
-        # 显示FPS（移到右下角避免重叠） - 使用提示文字颜色
+        # 显示FPS和游戏速度（右下角） - 使用提示文字颜色
         hint_color = self.theme_manager.get_text_color("hint")
+        warning_color = self.theme_manager.get_text_color("warning")
+
+        # FPS显示
         fps_text = self.fonts['small'].render(f"FPS: {self.engine.get_fps():.1f}", True, hint_color)
-        screen.blit(fps_text, (screen.get_width() - 100, screen.get_height() - 30))
+        screen.blit(fps_text, (screen.get_width() - 100, screen.get_height() - 55))
+
+        # 速度显示（速度>1时用警告色）
+        speed = self.engine.time_scale
+        speed_color = warning_color if speed > 1.0 else hint_color
+        speed_text = self.fonts['small'].render(f"速度: {speed}x", True, speed_color)
+        screen.blit(speed_text, (screen.get_width() - 100, screen.get_height() - 30))
 
         # 底部游戏提示（左下角，避免和FPS重叠） - 使用提示文字颜色
+        speed_key = self.settings.get('controls', {}).get('speed_toggle', 'space').upper()
         hint_lines = [
-            "点击卡片→点击网格放置 | ESC暂停 | F11全屏",
+            f"点击卡片→点击网格放置 | {speed_key}加速 | ESC暂停 | F11全屏",
         ]
         for i, line in enumerate(hint_lines):
             hint_text = self.fonts['small'].render(line, True, hint_color)
