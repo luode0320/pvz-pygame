@@ -7,7 +7,8 @@
       "Bash(python:*)",
       "Bash(timeout 5 sleep:*)",
       "Bash(cd:*)",
-      "Bash(\"E:\\pvz-pygame\\日志.md\")"
+      "Bash(\"E:\\pvz-pygame\\日志.md\")",
+      "Bash(timeout 3 sleep:*)"
     ],
     "deny": [],
     "ask": []

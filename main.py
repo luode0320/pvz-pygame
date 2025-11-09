@@ -103,6 +103,9 @@ class CrossVerseArena:
         # 鼠标状态（用于防止连点）
         self.mouse_pressed_last_frame = False
 
+        # 设置界面滚动偏移
+        self.settings_scroll_offset = 0
+
         # 注册状态处理器
         self.register_state_handlers()
 
@@ -275,11 +278,11 @@ class CrossVerseArena:
         subtitle_rect = subtitle.get_rect(center=(screen.get_width() // 2, 220))
         screen.blit(subtitle, subtitle_rect)
 
-        # 绘制菜单选项（带图标）
+        # 绘制菜单选项
         menu_items = [
-            ("▶ 开始游戏", GameState.CAMPAIGN_SELECT),
-            ("⚙ 设置", GameState.SETTINGS),
-            ("✕ 退出", GameState.QUIT)
+            ("开始游戏", GameState.CAMPAIGN_SELECT),
+            ("设置", GameState.SETTINGS),
+            ("退出", GameState.QUIT)
         ]
 
         y_start = 320
@@ -540,7 +543,7 @@ class CrossVerseArena:
                 # 已完成状态 - 绿色
                 bg_color = self.theme_manager.get_color("card", "level_completed_bg")
                 border_color = self.theme_manager.get_color("card", "level_completed_border")
-                status_text = "✓ 已完成"
+                status_text = "[已完成]"
                 status_color = self.theme_manager.get_color("card", "level_completed_text")
             elif is_unlocked:
                 # 已解锁状态 - 蓝色，悬停时变亮
@@ -550,13 +553,13 @@ class CrossVerseArena:
                 else:
                     bg_color = self.theme_manager.get_color("card", "level_unlocked_bg")
                     border_color = self.theme_manager.get_color("card", "level_unlocked_border")
-                status_text = "可进入"
+                status_text = "[可进入]"
                 status_color = self.theme_manager.get_color("card", "level_unlocked_text")
             else:
                 # 未解锁状态 - 灰色
                 bg_color = self.theme_manager.get_color("card", "level_locked_bg")
                 border_color = self.theme_manager.get_color("card", "level_locked_border")
-                status_text = "🔒 未解锁"
+                status_text = "[未解锁]"
                 status_color = self.theme_manager.get_color("card", "level_locked_text")
 
             pygame.draw.rect(screen, bg_color, card_rect)
@@ -574,37 +577,26 @@ class CrossVerseArena:
             status_rect = status_label.get_rect(topright=(x + card_width - 15, y + 15))
             screen.blit(status_label, status_rect)
 
-            # 关卡信息（第二行） - 使用主题管理器的图标颜色
+            # 关卡简介/描述
             info_y = y + 55
             info_x = x + 15
 
-            # 初始金币 - 使用金币图标颜色
-            economy = level_config.get('economy', {})
-            gold_color = self.theme_manager.get_color("icon", "gold")
-            gold_icon = self.fonts['small'].render(f"💰 金币: {economy.get('initial_gold', 200)}", True, gold_color)
-            screen.blit(gold_icon, (info_x, info_y))
+            description = level_config.get('description', '挑战关卡')
+            desc_color = self.theme_manager.get_text_color("subtitle")
+            desc_text = self.fonts['small'].render(description[:40], True, desc_color)
+            screen.blit(desc_text, (info_x, info_y))
 
-            # 基地血量 - 使用血量图标颜色
-            base = level_config.get('base', {})
-            hp_color = self.theme_manager.get_color("icon", "hp")
-            hp_icon = self.fonts['small'].render(f"❤️ 血量: {base.get('initial_hp', 1000)}", True, hp_color)
-            screen.blit(hp_icon, (info_x + 150, info_y))
-
-            # 波次数量 - 使用波次图标颜色
-            waves = level_config.get('waves', [])
-            wave_color = self.theme_manager.get_color("icon", "wave")
-            wave_icon = self.fonts['small'].render(f"🌊 波次: {len(waves)}", True, wave_color)
-            screen.blit(wave_icon, (info_x, info_y + 30))
-
-            # 奖励信息 - 使用奖励图标颜色
-            rewards = level_config.get('rewards', {})
-            reward_color = self.theme_manager.get_color("icon", "reward")
-            reward_icon = self.fonts['small'].render(
-                f"🏆 奖励: {rewards.get('gold', 0)} 金币",
-                True,
-                reward_color
-            )
-            screen.blit(reward_icon, (info_x, info_y + 60))
+            # 奖励信息（暂时隐藏，等商城系统实现后再显示）
+            # rewards = level_config.get('rewards', {})
+            # reward_gold = rewards.get('gold', 0)
+            # if reward_gold > 0:
+            #     reward_color = self.theme_manager.get_color("icon", "gold")
+            #     reward_text = self.fonts['small'].render(
+            #         f"奖励: {reward_gold} 金币",
+            #         True,
+            #         reward_color
+            #     )
+            #     screen.blit(reward_text, (info_x, info_y + 30))
 
             # 处理点击（仅已解锁关卡可点击）
             if is_hover and mouse_just_clicked and is_unlocked:
@@ -820,7 +812,7 @@ class CrossVerseArena:
             # 绘制角色费用 - 使用金币图标颜色
             cost = char_config.get('cost', 100)
             cost_color = self.theme_manager.get_color("icon", "gold")
-            cost_text = self.fonts['small'].render(f"💰 {cost}", True, cost_color)
+            cost_text = self.fonts['small'].render(f"费用: {cost}", True, cost_color)
             cost_rect = cost_text.get_rect(center=(card_rect.centerx, card_rect.top + 100))
             screen.blit(cost_text, cost_rect)
 
@@ -828,8 +820,8 @@ class CrossVerseArena:
             stats = char_config.get('stats', {})
             success_color = self.theme_manager.get_text_color("success")
             error_color = self.theme_manager.get_text_color("error")
-            hp_text = self.fonts['small'].render(f"❤️ {stats.get('hp', 0)}", True, success_color)
-            atk_text = self.fonts['small'].render(f"⚔️ {stats.get('attack', 0)}", True, error_color)
+            hp_text = self.fonts['small'].render(f"HP: {stats.get('hp', 0)}", True, success_color)
+            atk_text = self.fonts['small'].render(f"攻击: {stats.get('attack', 0)}", True, error_color)
             hp_rect = hp_text.get_rect(center=(card_rect.centerx, card_rect.top + 130))
             atk_rect = atk_text.get_rect(center=(card_rect.centerx, card_rect.top + 155))
             screen.blit(hp_text, hp_rect)
@@ -1394,11 +1386,19 @@ class CrossVerseArena:
 
     def state_settings(self, screen: pygame.Surface, delta_time: float):
         """设置界面处理"""
+        # 如果是刚进入设置页面，重置滚动偏移
+        if self.engine.previous_state != GameState.SETTINGS:
+            self.settings_scroll_offset = 0
+
         # 使用主题管理器获取背景颜色
         bg_color = self.theme_manager.get_background_color("main_menu")
         screen.fill(bg_color)
 
-        # 标题 - 使用标题文字颜色
+        # 处理滚轮事件
+        for event in pygame.event.get(pygame.MOUSEWHEEL):
+            self.settings_scroll_offset -= event.y * 30  # 滚动速度
+
+        # 标题 - 使用标题文字颜色（固定不滚动）
         title_color = self.theme_manager.get_text_color("title")
         title = self.fonts['title'].render("游戏设置", True, title_color)
         title_rect = title.get_rect(center=(screen.get_width() // 2, 60))
@@ -1417,10 +1417,10 @@ class CrossVerseArena:
         start_x = 150
         start_y = 150
         line_height = 60
-        current_y = start_y
+        current_y = start_y - self.settings_scroll_offset  # 应用滚动偏移
 
         # ====== 音频设置 ======
-        section_text = self.fonts['large'].render("🔊 音频设置", True, title_color)
+        section_text = self.fonts['large'].render("【音频设置】", True, title_color)
         screen.blit(section_text, (start_x, current_y))
         current_y += 50
 
@@ -1429,21 +1429,21 @@ class CrossVerseArena:
 
         # 主音量
         master_volume = audio_config.get('master_volume', 1.0)
-        self._draw_slider(screen, "主音量", start_x, current_y, master_volume, mouse_pos, mouse_just_clicked, 'master_volume')
+        self._draw_slider(screen, "主音量", start_x, current_y, master_volume, mouse_pos, mouse_just_clicked, 'master_volume', self.settings_scroll_offset)
         current_y += line_height
 
         # 音乐音量
         music_volume = audio_config.get('music_volume', 0.7)
-        self._draw_slider(screen, "音乐音量", start_x, current_y, music_volume, mouse_pos, mouse_just_clicked, 'music_volume')
+        self._draw_slider(screen, "音乐音量", start_x, current_y, music_volume, mouse_pos, mouse_just_clicked, 'music_volume', self.settings_scroll_offset)
         current_y += line_height
 
         # 音效音量
         sfx_volume = audio_config.get('sfx_volume', 0.8)
-        self._draw_slider(screen, "音效音量", start_x, current_y, sfx_volume, mouse_pos, mouse_just_clicked, 'sfx_volume')
+        self._draw_slider(screen, "音效音量", start_x, current_y, sfx_volume, mouse_pos, mouse_just_clicked, 'sfx_volume', self.settings_scroll_offset)
         current_y += 80
 
         # ====== 显示设置 ======
-        section_text = self.fonts['large'].render("🖥️ 显示设置", True, title_color)
+        section_text = self.fonts['large'].render("【显示设置】", True, title_color)
         screen.blit(section_text, (start_x, current_y))
         current_y += 50
 
@@ -1493,11 +1493,11 @@ class CrossVerseArena:
 
         # 全屏开关
         fullscreen = self.settings.get('fullscreen', False)
-        self._draw_toggle(screen, "全屏模式", start_x, current_y, fullscreen, mouse_pos, mouse_just_clicked, 'fullscreen')
+        self._draw_toggle(screen, "全屏模式", start_x, current_y, fullscreen, mouse_pos, mouse_just_clicked, 'fullscreen', self.settings_scroll_offset)
         current_y += 80
 
         # ====== 图形设置 ======
-        section_text = self.fonts['large'].render("🎨 图形设置", True, title_color)
+        section_text = self.fonts['large'].render("【图形设置】", True, title_color)
         screen.blit(section_text, (start_x, current_y))
         current_y += 50
 
@@ -1506,16 +1506,29 @@ class CrossVerseArena:
         # 抗锯齿
         aa = render_system.get('anti_aliasing', 'fxaa')
         aa_options = ['none', 'fxaa', 'taa']
-        self._draw_option_buttons(screen, "抗锯齿", start_x, current_y, aa, aa_options, mouse_pos, mouse_just_clicked, 'anti_aliasing')
+        self._draw_option_buttons(screen, "抗锯齿", start_x, current_y, aa, aa_options, mouse_pos, mouse_just_clicked, 'anti_aliasing', self.settings_scroll_offset)
         current_y += line_height
 
         # Bloom效果
         bloom = render_system.get('bloom_enabled', True)
-        self._draw_toggle(screen, "Bloom效果", start_x, current_y, bloom, mouse_pos, mouse_just_clicked, 'bloom_enabled')
+        self._draw_toggle(screen, "Bloom效果", start_x, current_y, bloom, mouse_pos, mouse_just_clicked, 'bloom_enabled', self.settings_scroll_offset)
         current_y += 80
 
-        # 底部按钮区域
-        button_y = screen.get_height() - 100
+        # 计算内容总高度（用于限制滚动）
+        content_height = current_y + self.settings_scroll_offset
+        max_scroll = max(0, content_height - screen.get_height() + 200)  # 留出底部按钮空间
+        self.settings_scroll_offset = max(0, min(self.settings_scroll_offset, max_scroll))
+
+        # 底部遮罩区域（固定不滚动）
+        button_area_height = 120
+        button_area_y = screen.get_height() - button_area_height
+        pygame.draw.rect(screen, bg_color, (0, button_area_y, screen.get_width(), button_area_height))
+        # 绘制分隔线
+        separator_color = self.theme_manager.get_color("button", "normal_border")
+        pygame.draw.line(screen, separator_color, (0, button_area_y), (screen.get_width(), button_area_y), 2)
+
+        # 底部按钮位置（固定）
+        button_y = screen.get_height() - 80
 
         # 保存按钮
         save_btn_rect = pygame.Rect(screen.get_width() // 2 - 220, button_y, 200, 50)
@@ -1552,21 +1565,35 @@ class CrossVerseArena:
         if is_back_hover and mouse_just_clicked:
             self.engine.change_state(GameState.MENU)
 
+        # 滚动提示（如果内容超出屏幕）
+        if max_scroll > 0:
+            hint_color = self.theme_manager.get_text_color("hint")
+            scroll_hint = self.fonts['small'].render("使用鼠标滚轮查看更多设置", True, hint_color)
+            scroll_hint_rect = scroll_hint.get_rect(center=(screen.get_width() // 2, button_area_y - 20))
+            screen.blit(scroll_hint, scroll_hint_rect)
+
         # 更新鼠标状态
         self.mouse_pressed_last_frame = mouse_pressed
 
-    def _draw_slider(self, screen: pygame.Surface, label: str, x: int, y: int, value: float, mouse_pos: tuple, mouse_clicked: bool, setting_key: str):
+    def _draw_slider(self, screen: pygame.Surface, label: str, x: int, y: int, value: float, mouse_pos: tuple, mouse_clicked: bool, setting_key: str, scroll_offset: int = 0):
         """绘制音量滑块"""
+        # 调整Y坐标
+        adjusted_y = y - scroll_offset
+
+        # 如果滑块不在可见区域，跳过绘制
+        if adjusted_y < 120 or adjusted_y > screen.get_height() - 150:
+            return
+
         normal_color = self.theme_manager.get_text_color("normal")
         subtitle_color = self.theme_manager.get_text_color("subtitle")
 
         # 标签
         label_text = self.fonts['normal'].render(f"{label}: {int(value * 100)}%", True, normal_color)
-        screen.blit(label_text, (x + 20, y))
+        screen.blit(label_text, (x + 20, adjusted_y))
 
         # 滑块轨道
         slider_x = x + 300
-        slider_y = y + 10
+        slider_y = adjusted_y + 10
         slider_width = 300
         slider_height = 20
 
@@ -1594,17 +1621,24 @@ class CrossVerseArena:
                 # 实时应用音量更改
                 self._apply_audio_settings()
 
-    def _draw_toggle(self, screen: pygame.Surface, label: str, x: int, y: int, value: bool, mouse_pos: tuple, mouse_clicked: bool, setting_key: str):
+    def _draw_toggle(self, screen: pygame.Surface, label: str, x: int, y: int, value: bool, mouse_pos: tuple, mouse_clicked: bool, setting_key: str, scroll_offset: int = 0):
         """绘制开关按钮"""
+        # 调整Y坐标
+        adjusted_y = y - scroll_offset
+
+        # 如果控件不在可见区域，跳过绘制
+        if adjusted_y < 120 or adjusted_y > screen.get_height() - 150:
+            return
+
         normal_color = self.theme_manager.get_text_color("normal")
 
         # 标签
         label_text = self.fonts['normal'].render(label, True, normal_color)
-        screen.blit(label_text, (x + 20, y))
+        screen.blit(label_text, (x + 20, adjusted_y))
 
         # 开关
         toggle_x = x + 300
-        toggle_y = y + 5
+        toggle_y = adjusted_y + 5
         toggle_width = 100
         toggle_height = 40
         toggle_rect = pygame.Rect(toggle_x, toggle_y, toggle_width, toggle_height)
@@ -1639,18 +1673,25 @@ class CrossVerseArena:
                 self.settings['render_system'][setting_key] = not value
                 self._save_settings()
 
-    def _draw_option_buttons(self, screen: pygame.Surface, label: str, x: int, y: int, current_value: str, options: list, mouse_pos: tuple, mouse_clicked: bool, setting_key: str):
+    def _draw_option_buttons(self, screen: pygame.Surface, label: str, x: int, y: int, current_value: str, options: list, mouse_pos: tuple, mouse_clicked: bool, setting_key: str, scroll_offset: int = 0):
         """绘制选项按钮组"""
+        # 调整Y坐标
+        adjusted_y = y - scroll_offset
+
+        # 如果控件不在可见区域，跳过绘制
+        if adjusted_y < 120 or adjusted_y > screen.get_height() - 150:
+            return
+
         normal_color = self.theme_manager.get_text_color("normal")
 
         # 标签
         label_text = self.fonts['normal'].render(f"{label}: {current_value.upper()}", True, normal_color)
-        screen.blit(label_text, (x + 20, y))
+        screen.blit(label_text, (x + 20, adjusted_y))
 
         # 选项按钮
         for i, option in enumerate(options):
             btn_x = x + 300 + i * 100
-            btn_y = y - 5
+            btn_y = adjusted_y - 5
             btn_rect = pygame.Rect(btn_x, btn_y, 90, 40)
 
             is_current = (option == current_value)
