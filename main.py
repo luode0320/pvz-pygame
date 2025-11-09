@@ -103,8 +103,8 @@ class CrossVerseArena:
         # 鼠标状态（用于防止连点）
         self.mouse_pressed_last_frame = False
 
-        # 设置界面滚动偏移
-        self.settings_scroll_offset = 0
+        # 设置界面分页
+        self.settings_page = 0  # 当前页码（0: 音频/显示, 1: 图形设置）
 
         # 注册状态处理器
         self.register_state_handlers()
@@ -1385,153 +1385,195 @@ class CrossVerseArena:
         screen.blit(hint, (screen.get_width() // 2 - 100, screen.get_height() - 60))
 
     def state_settings(self, screen: pygame.Surface, delta_time: float):
-        """设置界面处理"""
-        # 如果是刚进入设置页面，重置滚动偏移
+        """设置界面处理（分页模式）"""
+        # 如果是刚进入设置页面，重置页码
         if self.engine.previous_state != GameState.SETTINGS:
-            self.settings_scroll_offset = 0
+            self.settings_page = 0
 
         # 使用主题管理器获取背景颜色
         bg_color = self.theme_manager.get_background_color("main_menu")
         screen.fill(bg_color)
 
-        # 处理滚轮事件
-        for event in pygame.event.get(pygame.MOUSEWHEEL):
-            self.settings_scroll_offset -= event.y * 30  # 滚动速度
-
-        # 标题 - 使用标题文字颜色（固定不滚动）
+        # 标题
         title_color = self.theme_manager.get_text_color("title")
         title = self.fonts['title'].render("游戏设置", True, title_color)
         title_rect = title.get_rect(center=(screen.get_width() // 2, 60))
         screen.blit(title, title_rect)
 
-        # 使用主题管理器获取颜色
-        normal_color = self.theme_manager.get_text_color("normal")
-        subtitle_color = self.theme_manager.get_text_color("subtitle")
-        info_color = self.theme_manager.get_text_color("info")
+        # 页码指示器
+        page_text = f"第 {self.settings_page + 1} / 2 页"
+        page_color = self.theme_manager.get_text_color("subtitle")
+        page_surface = self.fonts['normal'].render(page_text, True, page_color)
+        page_rect = page_surface.get_rect(center=(screen.get_width() // 2, 110))
+        screen.blit(page_surface, page_rect)
 
+        # 鼠标状态
         mouse_pos = pygame.mouse.get_pos()
         mouse_pressed = pygame.mouse.get_pressed()[0]
         mouse_just_clicked = mouse_pressed and not self.mouse_pressed_last_frame
 
         # 设置项起始位置
         start_x = 150
-        start_y = 150
+        start_y = 160
         line_height = 60
-        current_y = start_y - self.settings_scroll_offset  # 应用滚动偏移
+        current_y = start_y
 
-        # ====== 音频设置 ======
-        section_text = self.fonts['large'].render("【音频设置】", True, title_color)
-        screen.blit(section_text, (start_x, current_y))
-        current_y += 50
+        # ====== 第0页：音频 + 显示设置 ======
+        if self.settings_page == 0:
+            # 音频设置
+            section_text = self.fonts['large'].render("【音频设置】", True, title_color)
+            screen.blit(section_text, (start_x, current_y))
+            current_y += 50
 
-        # 从settings获取音频设置
-        audio_config = self.settings.get('audio', {})
+            # 从settings获取音频设置
+            audio_config = self.settings.get('audio', {})
 
-        # 主音量
-        master_volume = audio_config.get('master_volume', 1.0)
-        self._draw_slider(screen, "主音量", start_x, current_y, master_volume, mouse_pos, mouse_just_clicked, 'master_volume', self.settings_scroll_offset)
-        current_y += line_height
+            # 主音量
+            master_volume = audio_config.get('master_volume', 1.0)
+            self._draw_slider(screen, "主音量", start_x, current_y, master_volume, mouse_pos, mouse_just_clicked, 'master_volume')
+            current_y += line_height
 
-        # 音乐音量
-        music_volume = audio_config.get('music_volume', 0.7)
-        self._draw_slider(screen, "音乐音量", start_x, current_y, music_volume, mouse_pos, mouse_just_clicked, 'music_volume', self.settings_scroll_offset)
-        current_y += line_height
+            # 音乐音量
+            music_volume = audio_config.get('music_volume', 0.7)
+            self._draw_slider(screen, "音乐音量", start_x, current_y, music_volume, mouse_pos, mouse_just_clicked, 'music_volume')
+            current_y += line_height
 
-        # 音效音量
-        sfx_volume = audio_config.get('sfx_volume', 0.8)
-        self._draw_slider(screen, "音效音量", start_x, current_y, sfx_volume, mouse_pos, mouse_just_clicked, 'sfx_volume', self.settings_scroll_offset)
-        current_y += 80
+            # 音效音量
+            sfx_volume = audio_config.get('sfx_volume', 0.8)
+            self._draw_slider(screen, "音效音量", start_x, current_y, sfx_volume, mouse_pos, mouse_just_clicked, 'sfx_volume')
+            current_y += 80
 
-        # ====== 显示设置 ======
-        section_text = self.fonts['large'].render("【显示设置】", True, title_color)
-        screen.blit(section_text, (start_x, current_y))
-        current_y += 50
+            # 显示设置
+            section_text = self.fonts['large'].render("【显示设置】", True, title_color)
+            screen.blit(section_text, (start_x, current_y))
+            current_y += 50
 
-        # 分辨率选择
-        resolution = self.settings.get('resolution', [1280, 720])
-        resolution_options = self.settings.get('resolution_options', [[960, 540], [1280, 720], [1920, 1080]])
+            # 分辨率选择
+            normal_color = self.theme_manager.get_text_color("normal")
+            resolution = self.settings.get('resolution', [1280, 720])
+            resolution_options = self.settings.get('resolution_options', [[960, 540], [1280, 720], [1920, 1080]])
 
-        label = self.fonts['normal'].render(f"分辨率: {resolution[0]}x{resolution[1]}", True, normal_color)
-        screen.blit(label, (start_x + 20, current_y))
+            label = self.fonts['normal'].render(f"分辨率: {resolution[0]}x{resolution[1]}", True, normal_color)
+            screen.blit(label, (start_x + 20, current_y))
 
-        # 分辨率切换按钮
-        for i, res in enumerate(resolution_options):
-            btn_x = start_x + 300 + i * 140
-            btn_y = current_y - 5
-            btn_rect = pygame.Rect(btn_x, btn_y, 130, 40)
+            # 分辨率切换按钮
+            for i, res in enumerate(resolution_options):
+                btn_x = start_x + 300 + i * 140
+                btn_y = current_y - 5
+                btn_rect = pygame.Rect(btn_x, btn_y, 130, 40)
 
-            is_current = (res[0] == resolution[0] and res[1] == resolution[1])
-            is_hover = btn_rect.collidepoint(mouse_pos)
+                is_current = (res[0] == resolution[0] and res[1] == resolution[1])
+                is_hover = btn_rect.collidepoint(mouse_pos)
 
-            # 按钮颜色
-            if is_current:
-                btn_bg = self.theme_manager.get_color("button", "hover_bg")
-                btn_border = self.theme_manager.get_color("button", "hover_border")
-                btn_text_color = self.theme_manager.get_color("button", "hover_text")
-            elif is_hover:
-                btn_bg = self.theme_manager.get_color("button", "normal_bg")
-                btn_border = self.theme_manager.get_color("button", "hover_border")
-                btn_text_color = self.theme_manager.get_color("button", "normal_text")
-            else:
-                btn_bg = self.theme_manager.get_color("button", "normal_bg")
-                btn_border = self.theme_manager.get_color("button", "normal_border")
-                btn_text_color = self.theme_manager.get_color("button", "normal_text")
+                # 按钮颜色
+                if is_current:
+                    btn_bg = self.theme_manager.get_color("button", "hover_bg")
+                    btn_border = self.theme_manager.get_color("button", "hover_border")
+                    btn_text_color = self.theme_manager.get_color("button", "hover_text")
+                elif is_hover:
+                    btn_bg = self.theme_manager.get_color("button", "normal_bg")
+                    btn_border = self.theme_manager.get_color("button", "hover_border")
+                    btn_text_color = self.theme_manager.get_color("button", "normal_text")
+                else:
+                    btn_bg = self.theme_manager.get_color("button", "normal_bg")
+                    btn_border = self.theme_manager.get_color("button", "normal_border")
+                    btn_text_color = self.theme_manager.get_color("button", "normal_text")
 
-            pygame.draw.rect(screen, btn_bg, btn_rect)
-            pygame.draw.rect(screen, btn_border, btn_rect, 2)
+                pygame.draw.rect(screen, btn_bg, btn_rect)
+                pygame.draw.rect(screen, btn_border, btn_rect, 2)
 
-            res_text = self.fonts['small'].render(f"{res[0]}x{res[1]}", True, btn_text_color)
-            res_text_rect = res_text.get_rect(center=btn_rect.center)
-            screen.blit(res_text, res_text_rect)
+                res_text = self.fonts['small'].render(f"{res[0]}x{res[1]}", True, btn_text_color)
+                res_text_rect = res_text.get_rect(center=btn_rect.center)
+                screen.blit(res_text, res_text_rect)
 
-            if is_hover and mouse_just_clicked and not is_current:
-                self.settings['resolution'] = res
-                self._save_settings()
-                logger.info(f"分辨率更改为: {res[0]}x{res[1]}")
+                if is_hover and mouse_just_clicked and not is_current:
+                    self.settings['resolution'] = res
+                    self._save_settings()
+                    logger.info(f"分辨率更改为: {res[0]}x{res[1]}")
 
-        current_y += line_height
+            current_y += line_height
 
-        # 全屏开关
-        fullscreen = self.settings.get('fullscreen', False)
-        self._draw_toggle(screen, "全屏模式", start_x, current_y, fullscreen, mouse_pos, mouse_just_clicked, 'fullscreen', self.settings_scroll_offset)
-        current_y += 80
+            # 全屏开关
+            fullscreen = self.settings.get('fullscreen', False)
+            self._draw_toggle(screen, "全屏模式", start_x, current_y, fullscreen, mouse_pos, mouse_just_clicked, 'fullscreen')
 
-        # ====== 图形设置 ======
-        section_text = self.fonts['large'].render("【图形设置】", True, title_color)
-        screen.blit(section_text, (start_x, current_y))
-        current_y += 50
+        # ====== 第1页：图形设置 ======
+        elif self.settings_page == 1:
+            section_text = self.fonts['large'].render("【图形设置】", True, title_color)
+            screen.blit(section_text, (start_x, current_y))
+            current_y += 50
 
-        render_system = self.settings.get('render_system', {})
+            render_system = self.settings.get('render_system', {})
 
-        # 抗锯齿
-        aa = render_system.get('anti_aliasing', 'fxaa')
-        aa_options = ['none', 'fxaa', 'taa']
-        self._draw_option_buttons(screen, "抗锯齿", start_x, current_y, aa, aa_options, mouse_pos, mouse_just_clicked, 'anti_aliasing', self.settings_scroll_offset)
-        current_y += line_height
+            # 抗锯齿
+            aa = render_system.get('anti_aliasing', 'fxaa')
+            aa_options = ['none', 'fxaa', 'taa']
+            self._draw_option_buttons(screen, "抗锯齿", start_x, current_y, aa, aa_options, mouse_pos, mouse_just_clicked, 'anti_aliasing')
+            current_y += line_height
 
-        # Bloom效果
-        bloom = render_system.get('bloom_enabled', True)
-        self._draw_toggle(screen, "Bloom效果", start_x, current_y, bloom, mouse_pos, mouse_just_clicked, 'bloom_enabled', self.settings_scroll_offset)
-        current_y += 80
+            # Bloom效果
+            bloom = render_system.get('bloom_enabled', True)
+            self._draw_toggle(screen, "Bloom效果", start_x, current_y, bloom, mouse_pos, mouse_just_clicked, 'bloom_enabled')
 
-        # 计算内容总高度（用于限制滚动）
-        content_height = current_y + self.settings_scroll_offset
-        max_scroll = max(0, content_height - screen.get_height() + 200)  # 留出底部按钮空间
-        self.settings_scroll_offset = max(0, min(self.settings_scroll_offset, max_scroll))
-
-        # 底部遮罩区域（固定不滚动）
+        # 底部按钮区域
         button_area_height = 120
         button_area_y = screen.get_height() - button_area_height
-        pygame.draw.rect(screen, bg_color, (0, button_area_y, screen.get_width(), button_area_height))
+
         # 绘制分隔线
         separator_color = self.theme_manager.get_color("button", "normal_border")
         pygame.draw.line(screen, separator_color, (0, button_area_y), (screen.get_width(), button_area_y), 2)
 
-        # 底部按钮位置（固定）
+        # 底部按钮Y位置
         button_y = screen.get_height() - 80
 
-        # 保存按钮
-        save_btn_rect = pygame.Rect(screen.get_width() // 2 - 220, button_y, 200, 50)
+        # 上一页按钮
+        prev_btn_rect = pygame.Rect(100, button_y, 150, 50)
+        is_prev_hover = prev_btn_rect.collidepoint(mouse_pos)
+        prev_enabled = self.settings_page > 0
+
+        if prev_enabled:
+            prev_bg = self.theme_manager.get_color("button", "hover_bg" if is_prev_hover else "normal_bg")
+            prev_border = self.theme_manager.get_color("button", "hover_border" if is_prev_hover else "normal_border")
+            prev_text_color = self.theme_manager.get_color("button", "hover_text" if is_prev_hover else "normal_text")
+        else:
+            prev_bg = self.theme_manager.get_color("button", "disabled_bg")
+            prev_border = self.theme_manager.get_color("button", "disabled_border")
+            prev_text_color = self.theme_manager.get_color("button", "disabled_text")
+
+        pygame.draw.rect(screen, prev_bg, prev_btn_rect)
+        pygame.draw.rect(screen, prev_border, prev_btn_rect, 2)
+        prev_text = self.fonts['normal'].render("上一页", True, prev_text_color)
+        prev_text_rect = prev_text.get_rect(center=prev_btn_rect.center)
+        screen.blit(prev_text, prev_text_rect)
+
+        if is_prev_hover and mouse_just_clicked and prev_enabled:
+            self.settings_page -= 1
+
+        # 下一页按钮
+        next_btn_rect = pygame.Rect(screen.get_width() - 250, button_y, 150, 50)
+        is_next_hover = next_btn_rect.collidepoint(mouse_pos)
+        next_enabled = self.settings_page < 1  # 总共2页
+
+        if next_enabled:
+            next_bg = self.theme_manager.get_color("button", "hover_bg" if is_next_hover else "normal_bg")
+            next_border = self.theme_manager.get_color("button", "hover_border" if is_next_hover else "normal_border")
+            next_text_color = self.theme_manager.get_color("button", "hover_text" if is_next_hover else "normal_text")
+        else:
+            next_bg = self.theme_manager.get_color("button", "disabled_bg")
+            next_border = self.theme_manager.get_color("button", "disabled_border")
+            next_text_color = self.theme_manager.get_color("button", "disabled_text")
+
+        pygame.draw.rect(screen, next_bg, next_btn_rect)
+        pygame.draw.rect(screen, next_border, next_btn_rect, 2)
+        next_text = self.fonts['normal'].render("下一页", True, next_text_color)
+        next_text_rect = next_text.get_rect(center=next_btn_rect.center)
+        screen.blit(next_text, next_text_rect)
+
+        if is_next_hover and mouse_just_clicked and next_enabled:
+            self.settings_page += 1
+
+        # 保存并返回按钮（居中）
+        save_btn_rect = pygame.Rect(screen.get_width() // 2 - 110, button_y, 220, 50)
         is_save_hover = save_btn_rect.collidepoint(mouse_pos)
 
         btn_bg = self.theme_manager.get_color("button", "hover_bg" if is_save_hover else "normal_bg")
@@ -1540,7 +1582,7 @@ class CrossVerseArena:
 
         pygame.draw.rect(screen, btn_bg, save_btn_rect)
         pygame.draw.rect(screen, btn_border, save_btn_rect, 2)
-        save_text = self.fonts['normal'].render("保存设置", True, btn_text_color)
+        save_text = self.fonts['normal'].render("保存并返回", True, btn_text_color)
         save_text_rect = save_text.get_rect(center=save_btn_rect.center)
         screen.blit(save_text, save_text_rect)
 
@@ -1548,52 +1590,20 @@ class CrossVerseArena:
             self._save_settings()
             self.engine.change_state(GameState.MENU)
 
-        # 返回按钮
-        back_btn_rect = pygame.Rect(screen.get_width() // 2 + 20, button_y, 200, 50)
-        is_back_hover = back_btn_rect.collidepoint(mouse_pos)
-
-        btn_bg = self.theme_manager.get_color("button", "hover_bg" if is_back_hover else "normal_bg")
-        btn_border = self.theme_manager.get_color("button", "hover_border" if is_back_hover else "normal_border")
-        btn_text_color = self.theme_manager.get_color("button", "hover_text" if is_back_hover else "normal_text")
-
-        pygame.draw.rect(screen, btn_bg, back_btn_rect)
-        pygame.draw.rect(screen, btn_border, back_btn_rect, 2)
-        back_text = self.fonts['normal'].render("返回 (ESC)", True, btn_text_color)
-        back_text_rect = back_text.get_rect(center=back_btn_rect.center)
-        screen.blit(back_text, back_text_rect)
-
-        if is_back_hover and mouse_just_clicked:
-            self.engine.change_state(GameState.MENU)
-
-        # 滚动提示（如果内容超出屏幕）
-        if max_scroll > 0:
-            hint_color = self.theme_manager.get_text_color("hint")
-            scroll_hint = self.fonts['small'].render("使用鼠标滚轮查看更多设置", True, hint_color)
-            scroll_hint_rect = scroll_hint.get_rect(center=(screen.get_width() // 2, button_area_y - 20))
-            screen.blit(scroll_hint, scroll_hint_rect)
-
         # 更新鼠标状态
         self.mouse_pressed_last_frame = mouse_pressed
 
-    def _draw_slider(self, screen: pygame.Surface, label: str, x: int, y: int, value: float, mouse_pos: tuple, mouse_clicked: bool, setting_key: str, scroll_offset: int = 0):
+    def _draw_slider(self, screen: pygame.Surface, label: str, x: int, y: int, value: float, mouse_pos: tuple, mouse_clicked: bool, setting_key: str):
         """绘制音量滑块"""
-        # 调整Y坐标
-        adjusted_y = y - scroll_offset
-
-        # 如果滑块不在可见区域，跳过绘制
-        if adjusted_y < 120 or adjusted_y > screen.get_height() - 150:
-            return
-
         normal_color = self.theme_manager.get_text_color("normal")
-        subtitle_color = self.theme_manager.get_text_color("subtitle")
 
         # 标签
         label_text = self.fonts['normal'].render(f"{label}: {int(value * 100)}%", True, normal_color)
-        screen.blit(label_text, (x + 20, adjusted_y))
+        screen.blit(label_text, (x + 20, y))
 
         # 滑块轨道
         slider_x = x + 300
-        slider_y = adjusted_y + 10
+        slider_y = y + 10
         slider_width = 300
         slider_height = 20
 
@@ -1621,24 +1631,17 @@ class CrossVerseArena:
                 # 实时应用音量更改
                 self._apply_audio_settings()
 
-    def _draw_toggle(self, screen: pygame.Surface, label: str, x: int, y: int, value: bool, mouse_pos: tuple, mouse_clicked: bool, setting_key: str, scroll_offset: int = 0):
+    def _draw_toggle(self, screen: pygame.Surface, label: str, x: int, y: int, value: bool, mouse_pos: tuple, mouse_clicked: bool, setting_key: str):
         """绘制开关按钮"""
-        # 调整Y坐标
-        adjusted_y = y - scroll_offset
-
-        # 如果控件不在可见区域，跳过绘制
-        if adjusted_y < 120 or adjusted_y > screen.get_height() - 150:
-            return
-
         normal_color = self.theme_manager.get_text_color("normal")
 
         # 标签
         label_text = self.fonts['normal'].render(label, True, normal_color)
-        screen.blit(label_text, (x + 20, adjusted_y))
+        screen.blit(label_text, (x + 20, y))
 
         # 开关
         toggle_x = x + 300
-        toggle_y = adjusted_y + 5
+        toggle_y = y + 5
         toggle_width = 100
         toggle_height = 40
         toggle_rect = pygame.Rect(toggle_x, toggle_y, toggle_width, toggle_height)
@@ -1673,25 +1676,18 @@ class CrossVerseArena:
                 self.settings['render_system'][setting_key] = not value
                 self._save_settings()
 
-    def _draw_option_buttons(self, screen: pygame.Surface, label: str, x: int, y: int, current_value: str, options: list, mouse_pos: tuple, mouse_clicked: bool, setting_key: str, scroll_offset: int = 0):
+    def _draw_option_buttons(self, screen: pygame.Surface, label: str, x: int, y: int, current_value: str, options: list, mouse_pos: tuple, mouse_clicked: bool, setting_key: str):
         """绘制选项按钮组"""
-        # 调整Y坐标
-        adjusted_y = y - scroll_offset
-
-        # 如果控件不在可见区域，跳过绘制
-        if adjusted_y < 120 or adjusted_y > screen.get_height() - 150:
-            return
-
         normal_color = self.theme_manager.get_text_color("normal")
 
         # 标签
         label_text = self.fonts['normal'].render(f"{label}: {current_value.upper()}", True, normal_color)
-        screen.blit(label_text, (x + 20, adjusted_y))
+        screen.blit(label_text, (x + 20, y))
 
         # 选项按钮
         for i, option in enumerate(options):
             btn_x = x + 300 + i * 100
-            btn_y = adjusted_y - 5
+            btn_y = y - 5
             btn_rect = pygame.Rect(btn_x, btn_y, 90, 40)
 
             is_current = (option == current_value)
