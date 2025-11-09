@@ -1,7 +1,7 @@
 # DNF（地下城与勇士）游戏元信息
 
 name: "地下城与勇士"
-type: defender  # 防守方
+type: fighting  # 游戏类型：格斗
 version: "1.0"
 author: "社区贡献者"
 icon: "assets/icons/dnf.png"

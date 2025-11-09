@@ -26,6 +26,23 @@ class GameManager:
     5. 验证（名称唯一性、路径合法性）
     """
 
+    # 游戏玩法类型映射：中文显示 -> 英文存储
+    # 注意：游戏IP本身没有"防守方/攻击方"的固定身份
+    # "防守方/攻击方"是在战役配置中定义的，不是游戏IP的属性
+    GAME_TYPE_MAP = {
+        "塔防": "tower_defense",
+        "动作": "action",
+        "角色扮演": "rpg",
+        "策略": "strategy",
+        "MOBA": "moba",
+        "格斗": "fighting",
+        "冒险": "adventure",
+        "益智": "puzzle"
+    }
+
+    # 反向映射：英文 -> 中文
+    GAME_TYPE_REVERSE_MAP = {v: k for k, v in GAME_TYPE_MAP.items()}
+
     def __init__(self, parent: tk.Frame, config_loader, admin_manager):
         """
         初始化游戏IP管理器
@@ -158,11 +175,11 @@ class GameManager:
         tk.Label(self.editor_content, text="游戏类型 *:", bg="white", anchor=tk.W).grid(
             row=row, column=0, sticky=tk.W, padx=5, pady=5
         )
-        self.game_type_var = tk.StringVar(value="tower_defense")
+        self.game_type_var = tk.StringVar(value="动作")
         type_combo = ttk.Combobox(
             self.editor_content,
             textvariable=self.game_type_var,
-            values=["tower_defense", "action", "rpg", "strategy", "moba"],
+            values=list(self.GAME_TYPE_MAP.keys()),  # 使用中文选项
             state="readonly",
             width=37
         )
@@ -358,7 +375,10 @@ class GameManager:
             self.game_id_entry.config(state=tk.DISABLED)  # 禁止修改ID（作为主键，应保持不变）
 
             self.game_name_var.set(game_data.get("name", ""))
-            self.game_type_var.set(game_data.get("type", "tower_defense"))
+            # 将英文类型转换为中文显示
+            game_type_en = game_data.get("type", "action")
+            game_type_cn = self.GAME_TYPE_REVERSE_MAP.get(game_type_en, "动作")
+            self.game_type_var.set(game_type_cn)
 
             desc = game_data.get("description", "")
             self.game_desc_text.delete("1.0", tk.END)
@@ -383,7 +403,7 @@ class GameManager:
         self.game_id_var.set("")
         self.game_id_entry.config(state=tk.NORMAL)
         self.game_name_var.set("")
-        self.game_type_var.set("tower_defense")
+        self.game_type_var.set("动作")  # 使用中文默认值
         self.game_desc_text.delete("1.0", tk.END)
         self.game_author_var.set("")
         self.game_version_var.set("1.0.0")
@@ -460,11 +480,14 @@ class GameManager:
             tags_text = self.game_tags_var.get().strip()
             tags = [tag.strip() for tag in tags_text.split(",")] if tags_text else []
 
+            # 将中文类型转换为英文存储
+            game_type_en = self.GAME_TYPE_MAP.get(game_type, "action")
+
             # 构建配置数据
             game_config = {
                 "game_id": game_id,
                 "name": game_name,
-                "type": game_type,
+                "type": game_type_en,  # 保存英文类型
                 "description": self.game_desc_text.get("1.0", tk.END).strip(),
                 "author": self.game_author_var.get().strip(),
                 "version": self.game_version_var.get().strip(),

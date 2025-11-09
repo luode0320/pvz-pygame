@@ -1,7 +1,7 @@
 # LOL（英雄联盟）游戏元信息
 
 name: "英雄联盟"
-type: attacker  # 攻击方
+type: moba  # 游戏类型：MOBA
 version: "1.0"
 author: "社区贡献者"
 icon: "assets/icons/lol.png"
