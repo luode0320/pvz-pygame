@@ -249,10 +249,12 @@ class RecycleLogManager:
 
         try:
             shutil.move(str(item_path), str(dest_path))
-            logger.info(f"恢复配置: {item_name} ({config_type}) -> {dest_path}")
+            # 记录操作日志
+            self.admin_manager.log_operation("RESTORE", f"{config_type}: {item_name} -> {dest_path}")
             messagebox.showinfo("成功", f"项目已恢复到:\n{dest_path}")
 
             self._load_recycle_bin()
+            self._load_logs()
 
         except Exception as e:
             logger.error(f"恢复配置失败: {e}")
@@ -283,10 +285,12 @@ class RecycleLogManager:
             else:
                 item_path.unlink()
 
-            logger.info(f"永久删除配置: {item_name} ({config_type})")
+            # 记录操作日志
+            self.admin_manager.log_operation("PERMANENT_DELETE", f"{config_type}: {item_name}")
             messagebox.showinfo("成功", "项目已永久删除")
 
             self._load_recycle_bin()
+            self._load_logs()
 
         except Exception as e:
             logger.error(f"永久删除配置失败: {e}")
@@ -310,10 +314,12 @@ class RecycleLogManager:
                             item_path.unlink()
                         count += 1
 
-            logger.info(f"清空回收站，删除 {count} 个项目")
+            # 记录操作日志
+            self.admin_manager.log_operation("EMPTY_RECYCLE_BIN", f"删除 {count} 个项目")
             messagebox.showinfo("成功", f"已清空回收站，删除 {count} 个项目")
 
             self._load_recycle_bin()
+            self._load_logs()
 
         except Exception as e:
             logger.error(f"清空回收站失败: {e}")
