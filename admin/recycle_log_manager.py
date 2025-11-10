@@ -231,12 +231,16 @@ class RecycleLogManager:
             messagebox.showerror("错误", "项目不存在")
             return
 
-        # 让用户选择恢复位置
-        dest_dir = filedialog.askdirectory(title="选择恢复位置", initialdir=self.root_dir)
-        if not dest_dir:
-            return
-
-        dest_path = Path(dest_dir) / item_name
+        # 根据配置类型确定恢复位置
+        if config_type == "游戏IP":
+            # 游戏IP直接恢复到games/目录
+            dest_path = self.root_dir / "games" / item_name
+        else:
+            # 其他类型需要用户选择恢复位置
+            dest_dir = filedialog.askdirectory(title=f"选择恢复位置 ({config_type})", initialdir=self.root_dir)
+            if not dest_dir:
+                return
+            dest_path = Path(dest_dir) / item_name
 
         # 检查重名
         if dest_path.exists():
