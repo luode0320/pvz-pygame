@@ -2,7 +2,7 @@
 
 character_id: "yasuo"
 name: "亚索"
-type: defender  # 防守方
+type: dps  # 防守方
 cost: 175
 description: "疾风剑豪，拥有击飞连招和风墙防御"
 

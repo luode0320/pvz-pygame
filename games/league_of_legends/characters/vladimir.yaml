@@ -2,7 +2,7 @@
 
 character_id: "vladimir"
 name: "弗拉基米尔"
-type: defender  # 防守方
+type: dps  # 防守方
 cost: 150
 description: "猩红收割者，拥有强大的吸血和生命回复能力"
 

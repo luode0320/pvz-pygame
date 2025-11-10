@@ -2,7 +2,7 @@
 
 character_id: "teemo"
 name: "提莫"
-type: defender  # 防守方
+type: dps  # 防守方
 cost: 100
 description: "迅捷斥候，擅长隐身和中毒攻击"
 

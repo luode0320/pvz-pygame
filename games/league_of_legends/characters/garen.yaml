@@ -2,7 +2,7 @@
 
 character_id: "garen"
 name: "盖伦"
-type: attacker  # 攻击方
+type: tank  # 攻击方
 cost: 150
 description: "德玛西亚之力，拥有强大的近战能力和坦度"
 

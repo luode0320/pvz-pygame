@@ -3,7 +3,7 @@
 
 character_id: "void_spawn"
 name: "虚空幼体"
-type: attacker  # 攻击方（敌人）
+type: dps  # 攻击方（敌人）
 cost: 0  # 召唤物无部署成本
 description: "由虚空能量凝聚而成的小型生物"
 

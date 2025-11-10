@@ -3,7 +3,7 @@
 
 character_id: "kindred"
 name: "千珏"
-type: defender  # 防守方
+type: dps
 cost: 175
 description: "永猎双子，拥有多样化的远程技能和强大的生存能力"
 

@@ -2,7 +2,7 @@
 
 character_id: "zhaohuan"
 name: "召唤师"
-type: defender  # 防守方
+type: dps  # 防守方
 cost: 100  # 部署成本
 description: "擅长召唤各种契约生物作战，具备多种控制与持续伤害技能"
 

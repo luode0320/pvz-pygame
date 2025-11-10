@@ -2,7 +2,7 @@
 
 character_id: "lux"
 name: "拉克丝"
-type: defender  # 防守方
+type: dps  # 防守方
 cost: 125
 description: "光辉女郎，拥有强大的远程魔法和控制能力"
 

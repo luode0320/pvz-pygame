@@ -2,7 +2,7 @@
 
 character_id: "light_guardian"
 name: "光之守卫"
-type: defender  # 防守方召唤物
+type: dps  # 防守方召唤物
 cost: 0  # 召唤物不需要花费
 description: "由拉克丝召唤的光之守卫，协助防御"
 
